@@ -1,0 +1,11 @@
+__pycache__/
+.env
+data/transactions.tsv
+data/blockchain.json
+
+*.bak*
+*.7z
+*.zip
+*.tsv
+*_downloaded.json
+*_production.*
