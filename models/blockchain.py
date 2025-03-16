@@ -11,8 +11,9 @@ from typing import Generator, Tuple, Dict, List
 import pandas as pd
 
 # Local
-from blockchain.sbchain_type_aliases import BlockDict, TransactionDict
-from blockchain.models.block import Block
+from ..sponsorblockchain_type_aliases import BlockDict, TransactionDict
+from .block import Block
+
 # endregion
 
 class Blockchain:

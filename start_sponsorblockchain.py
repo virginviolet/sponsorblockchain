@@ -6,7 +6,7 @@ from os import environ as os_environ
 from typing import List, TextIO
 
 # Local
-import blockchain.sbchain as sbchain
+import sponsorblockchain as sponsorblockchain
 # endregion
 
 # region Waitress
@@ -84,7 +84,7 @@ def start_flask_app() -> None:
     # For use with the Flask development server
     print("Starting flask app...")
     try:
-        sbchain.app.run(port=5000, debug=True, use_reloader=False)
+        sponsorblockchain.app.run(port=5000, debug=True, use_reloader=False)
     except Exception as e:
         error_message: str = f"ERROR: Error running Flask app: {e}"
         raise Exception(error_message)

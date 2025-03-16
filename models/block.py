@@ -5,7 +5,7 @@ import time
 from typing import Dict, List
 
 # Local
-from ..sbchain_type_aliases import TransactionDict
+from ..sponsorblockchain_type_aliases import TransactionDict
 # endregion
 
 # region Block class

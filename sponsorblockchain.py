@@ -10,11 +10,10 @@ from flask import Flask, request, jsonify, Response, send_file
 from dotenv import load_dotenv
 
 # Local
-import blockchain.extensions.discord_coin_bot_extension \
-    as discord_coin_bot_extension
-from blockchain.sbchain_type_aliases import TransactionDict
-from blockchain.models.block import Block
-from blockchain.models.blockchain import Blockchain
+import extensions.discord_coin_bot_extension as discord_coin_bot_extension
+from sponsorblockchain_type_aliases import TransactionDict
+from models.block import Block
+from models.blockchain import Blockchain
 # endregion
 
 # region Init
