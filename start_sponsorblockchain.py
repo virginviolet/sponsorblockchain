@@ -41,7 +41,7 @@ def start_flask_app_waitress() -> None:
 
     print("Starting Flask app with Waitress...")
     program = "waitress-serve"
-    app_name = "blockchain.sbchain"
+    app_name = "sponsorblockchain"
     host = "*"
     # Use the environment variable or default to 8000
     port: str = os_environ.get("PORT", "8080")
@@ -84,7 +84,7 @@ def start_flask_app() -> None:
     # For use with the Flask development server
     print("Starting flask app...")
     try:
-        sponsorblockchain.app.run(port=5000, debug=True, use_reloader=False)
+        app.run(port=8080, debug=True, use_reloader=False)
     except Exception as e:
         error_message: str = f"ERROR: Error running Flask app: {e}"
         raise Exception(error_message)
@@ -103,3 +103,8 @@ def start_flask_app_thread() -> None:
     except Exception as e:
         print(f"ERROR: Error starting Flask app thread: {e}")
 # endregion
+
+if __name__ == "__main__":
+    start_flask_app_thread()
+    while True:
+        pass
