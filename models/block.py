@@ -5,7 +5,14 @@ import time
 from typing import Dict, List
 
 # Local
-from ..sponsorblockchain_type_aliases import TransactionDict
+print("Importing TransactionDict from sponsorblockchain_type_aliases in block.py...")
+try:
+    # When running the script directly
+    from sponsorblockchain_type_aliases import TransactionDict
+except ImportError:
+    # When running the script as a module
+    from ..sponsorblockchain_type_aliases import TransactionDict
+    print("Imported TransactionDict from sponsorblockchain_type_aliases in block.py.")
 # endregion
 
 # region Block class

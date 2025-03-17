@@ -11,8 +11,15 @@ from typing import Generator, Tuple, Dict, List
 import pandas as pd
 
 # Local
-from ..sponsorblockchain_type_aliases import BlockDict, TransactionDict
 from .block import Block
+print("Importing sponsorblockchain_type_aliases in blockchain.py...")
+try:
+    # When running the script directly
+    from sponsorblockchain_type_aliases import TransactionDict, BlockDict
+except ImportError:
+    # When running the script as a module
+    from ..sponsorblockchain_type_aliases import TransactionDict, BlockDict
+print("Imported TransactionDict from sponsorblockchain_type_aliases in blockchain.py.")
 
 # endregion
 
@@ -473,3 +480,9 @@ class Blockchain:
             return_message = "The transactions file is valid."
             print(return_message)
             return (return_message, True)
+
+if __name__ == "__main__":
+    print("This module is not meant to be run directly.")
+    print("Please import this module in another script.")
+    print("Exiting...")
+    exit()

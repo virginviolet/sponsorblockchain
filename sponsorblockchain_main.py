@@ -3,17 +3,25 @@
 import os
 import json
 from sys import exit as sys_exit
-from typing import Tuple, Dict, List, Any
+from typing import Tuple, Dict, List, Any, TYPE_CHECKING
 
 # Third party
 from flask import Flask, request, jsonify, Response, send_file
 from dotenv import load_dotenv
 
 # Local
-import extensions.discord_coin_bot_extension as discord_coin_bot_extension
-from sponsorblockchain_type_aliases import TransactionDict
-from models.block import Block
-from models.blockchain import Blockchain
+try:
+    # When running the script directly
+    if TYPE_CHECKING:
+        from sponsorblockchain_type_aliases import TransactionDict
+        from models.block import Block
+    from models.blockchain import Blockchain
+except ImportError:
+    # When running the script as a module
+    if TYPE_CHECKING:
+        from .sponsorblockchain_type_aliases import TransactionDict
+        from .models.block import Block
+    from .models.blockchain import Blockchain
 # endregion
 
 # region Init
@@ -21,15 +29,11 @@ app = Flask(__name__)
 # Load .env file for the server token
 load_dotenv()
 SERVER_TOKEN: str | None = os.getenv('SERVER_TOKEN')
-# Register the API routes from extension
-discord_coin_bot_extension.register_routes(app)
 # endregion
 
 # region Start chain
-blockchain = Blockchain()
-
+blockchain: Blockchain = Blockchain()
 # endregion
-
 
 # region API Routes
 
@@ -252,5 +256,6 @@ def get_balance() -> Tuple[Response, int]:
 
 # region Run Flask app
 if __name__ == "__main__":
+    load_dotenv()
     app.run(port=8080, debug=True)
 # endregion

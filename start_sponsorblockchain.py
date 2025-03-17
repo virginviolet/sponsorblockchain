@@ -6,7 +6,7 @@ from os import environ as os_environ
 from typing import List, TextIO
 
 # Local
-import sponsorblockchain as sponsorblockchain
+from sponsorblockchain.sponsorblockchain_main import app
 # endregion
 
 # region Waitress
