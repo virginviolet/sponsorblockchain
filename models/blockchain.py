@@ -1,3 +1,7 @@
+# This script cannot be run directly with the current structure, because it
+# depends on 'block', and 'block' needs to import type aliases from
+# a parent directory
+
 # region Imports
 # Standard library
 import os
@@ -8,19 +12,27 @@ from io import TextIOWrapper
 from typing import Generator, Tuple, Dict, List
 
 # Third party
+import lazyimports
 import pandas as pd
 
 # Local
-from .block import Block
-print("Importing sponsorblockchain_type_aliases in blockchain.py...")
-try:
-    # When running the script directly
-    from sponsorblockchain_type_aliases import TransactionDict, BlockDict
-except ImportError:
-    # When running the script as a module
-    from ..sponsorblockchain_type_aliases import TransactionDict, BlockDict
-print("Imported TransactionDict from sponsorblockchain_type_aliases in blockchain.py.")
-
+with lazyimports.lazy_imports():
+    from .block import Block
+    try:
+        # For some reason, this doesn't work when blockchain.py is imported like
+        # modules/blockchain.py <- modules/__init__.py <- sponsorblockchain_main.py
+        from ..sponsorblockchain_type_aliases import (
+            TransactionDict, BlockDict)
+    except ImportError:
+        try:
+            # Running the blockchain directly from a script
+            # in the blockchain root directory
+            from sponsorblockchain_type_aliases import (
+                TransactionDict, BlockDict)
+        except ImportError:
+            # Running the blockchain as a package
+            from sponsorblockchain.sponsorblockchain_type_aliases import (
+                TransactionDict, BlockDict)
 # endregion
 
 class Blockchain:

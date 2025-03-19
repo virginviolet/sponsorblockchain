@@ -6,7 +6,12 @@ from os import environ as os_environ
 from typing import List, TextIO
 
 # Local
-from sponsorblockchain.sponsorblockchain_main import app
+if __name__ == "__main__":
+    # When running the script directly
+    from sponsorblockchain_main import app
+else:
+    # When running the script as a module
+    from .sponsorblockchain_main import app
 # endregion
 
 # region Waitress

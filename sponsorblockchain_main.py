@@ -6,22 +6,26 @@ from sys import exit as sys_exit
 from typing import Tuple, Dict, List, Any, TYPE_CHECKING
 
 # Third party
+import lazyimports
 from flask import Flask, request, jsonify, Response, send_file
 from dotenv import load_dotenv
 
 # Local
-try:
-    # When running the script directly
+if __name__ == "__main__" or __package__ == "":
+    # Running as a script or from the parent directory
     if TYPE_CHECKING:
-        from sponsorblockchain_type_aliases import TransactionDict
         from models.block import Block
-    from models.blockchain import Blockchain
-except ImportError:
-    # When running the script as a module
+        from sponsorblockchain_type_aliases import TransactionDict
+    with lazyimports.lazy_imports():
+        from models.blockchain import Blockchain
+else:
+    # Running as a package
     if TYPE_CHECKING:
-        from .sponsorblockchain_type_aliases import TransactionDict
-        from .models.block import Block
-    from .models.blockchain import Blockchain
+        from sponsorblockchain.models.block import Block
+        from sponsorblockchain.sponsorblockchain_type_aliases import TransactionDict
+    with lazyimports.lazy_imports():
+        from sponsorblockchain.models.blockchain import Blockchain
+
 # endregion
 
 # region Init

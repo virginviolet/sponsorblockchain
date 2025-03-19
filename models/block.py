@@ -4,15 +4,26 @@ import hashlib
 import time
 from typing import Dict, List
 
+# Third party
+import lazyimports
+
 # Local
-print("Importing TransactionDict from sponsorblockchain_type_aliases in block.py...")
-try:
-    # When running the script directly
-    from sponsorblockchain_type_aliases import TransactionDict
-except ImportError:
-    # When running the script as a module
-    from ..sponsorblockchain_type_aliases import TransactionDict
-    print("Imported TransactionDict from sponsorblockchain_type_aliases in block.py.")
+with lazyimports.lazy_imports():
+    try:
+        # For some reason, this doesn't work when block.py is imported like
+        # modules/block.py <- modules/__init__.py <- modules/blockchain.py <- sponsorblockchain_main.py 
+        from ..sponsorblockchain_type_aliases import (
+            TransactionDict)
+    except ImportError:
+        try:
+            # Running the blockchain directly from a script
+            # in the blockchain root directory
+            from sponsorblockchain_type_aliases import (
+                TransactionDict)
+        except ImportError:
+            # Running the blockchain as a package
+            from sponsorblockchain.sponsorblockchain_type_aliases import (
+                TransactionDict)
 # endregion
 
 # region Block class
