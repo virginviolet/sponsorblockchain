@@ -5,13 +5,20 @@ import subprocess
 from os import environ as os_environ
 from typing import List, TextIO
 
+# Third party
+import lazyimports
+
 # Local
 if __name__ == "__main__":
     # When running the script directly
-    from sponsorblockchain_main import app
+    with lazyimports.lazy_imports(
+            "sponsorblockchain_main:app"):
+        from sponsorblockchain_main import app
 else:
     # When running the script as a module
-    from .sponsorblockchain_main import app
+    with lazyimports.lazy_imports(
+            ".sponsorblockchain_main:app"):
+        from .sponsorblockchain_main import app
 # endregion
 
 # region Waitress
@@ -89,7 +96,7 @@ def start_flask_app() -> None:
     # For use with the Flask development server
     print("Starting flask app...")
     try:
-        app.run(port=8080, debug=True, use_reloader=False)
+        app.run(port=5000, debug=True, use_reloader=False)
     except Exception as e:
         error_message: str = f"ERROR: Error running Flask app: {e}"
         raise Exception(error_message)
@@ -108,6 +115,7 @@ def start_flask_app_thread() -> None:
     except Exception as e:
         print(f"ERROR: Error starting Flask app thread: {e}")
 # endregion
+
 
 if __name__ == "__main__":
     start_flask_app_thread()

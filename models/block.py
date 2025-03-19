@@ -8,20 +8,27 @@ from typing import Dict, List
 import lazyimports
 
 # Local
-with lazyimports.lazy_imports():
-    try:
-        # For some reason, this doesn't work when block.py is imported like
-        # modules/block.py <- modules/__init__.py <- modules/blockchain.py <- sponsorblockchain_main.py 
+try:
+    # For some reason, this doesn't work when block.py is imported like
+    # modules/block.py <- modules/__init__.py <- modules/blockchain.py <- sponsorblockchain_main.py
+    with lazyimports.lazy_imports(
+            "..sponsorblockchain_type_aliases:TransactionDict"):
         from ..sponsorblockchain_type_aliases import (
             TransactionDict)
-    except ImportError:
-        try:
-            # Running the blockchain directly from a script
-            # in the blockchain root directory
+except ImportError:
+    try:
+        # Running the blockchain directly from a script
+        # in the blockchain root directory
+        with lazyimports.lazy_imports(
+                "sponsorblockchain_type_aliases:TransactionDict"):
             from sponsorblockchain_type_aliases import (
                 TransactionDict)
-        except ImportError:
-            # Running the blockchain as a package
+    except ImportError:
+        # Running the blockchain as a package
+        transaction_dict_import: str = (
+            "sponsorblockchain.sponsorblockchain_type_aliases:TransactionDict")
+        with lazyimports.lazy_imports(
+                transaction_dict_import):
             from sponsorblockchain.sponsorblockchain_type_aliases import (
                 TransactionDict)
 # endregion

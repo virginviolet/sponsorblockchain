@@ -3,7 +3,7 @@
 import os
 import json
 from sys import exit as sys_exit
-from typing import Tuple, Dict, List, Any, TYPE_CHECKING
+from typing import Tuple, Dict, List, Any, Callable, TYPE_CHECKING
 
 # Third party
 import lazyimports
@@ -11,21 +11,28 @@ from flask import Flask, request, jsonify, Response, send_file
 from dotenv import load_dotenv
 
 # Local
+register_routes: Callable[[Flask], None] | None = None
 if __name__ == "__main__" or __package__ == "":
     # Running as a script or from the parent directory
     if TYPE_CHECKING:
+        from sponsorblockchain_type_aliases import (
+            TransactionDict)
         from models.block import Block
-        from sponsorblockchain_type_aliases import TransactionDict
-    with lazyimports.lazy_imports():
+    with lazyimports.lazy_imports(
+            "models.blockchain:Blockchain"):
         from models.blockchain import Blockchain
 else:
     # Running as a package
     if TYPE_CHECKING:
+        from sponsorblockchain.sponsorblockchain_type_aliases import (
+            TransactionDict)
         from sponsorblockchain.models.block import Block
-        from sponsorblockchain.sponsorblockchain_type_aliases import TransactionDict
-    with lazyimports.lazy_imports():
+    with lazyimports.lazy_imports(
+            "sponsorblockchain.models.blockchain:Blockchain",
+            "sponsorblockchain.extensions.discord_coin_bot_extension:register_routes"):
         from sponsorblockchain.models.blockchain import Blockchain
-
+        from sponsorblockchain.extensions.discord_coin_bot_extension import (
+        register_routes)
 # endregion
 
 # region Init
@@ -33,6 +40,12 @@ app = Flask(__name__)
 # Load .env file for the server token
 load_dotenv()
 SERVER_TOKEN: str | None = os.getenv('SERVER_TOKEN')
+# Register the API routes from extension
+if __package__ == "sponsorblockchain" and register_routes:
+    register_routes(app)
+else:
+    print("Will not register extension routes because "
+          "the blockchain is not running as a package.")
 # endregion
 
 # region Start chain

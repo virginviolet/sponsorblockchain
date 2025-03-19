@@ -10,10 +10,12 @@ if TYPE_CHECKING:
 with lazyimports.lazy_imports(
         ".sponsorblockchain_main:app",
         ".sponsorblockchain_main:blockchain",
-        ".sponsorblockchain_main:SERVER_TOKEN",
+        ".sponsorblockchain_main:SERVER_TOKEN"):
+    from .sponsorblockchain_main import app, blockchain, SERVER_TOKEN
+
+with lazyimports.lazy_imports(
         ".start_sponsorblockchain:start_flask_app_waitress",
         ".start_sponsorblockchain:start_flask_app"):
-    from .sponsorblockchain_main import app, blockchain, SERVER_TOKEN
     from .start_sponsorblockchain import (start_flask_app_waitress,
                                           start_flask_app)
 

@@ -16,24 +16,37 @@ import lazyimports
 import pandas as pd
 
 # Local
-with lazyimports.lazy_imports():
+with lazyimports.lazy_imports(".block:Block"):
     from .block import Block
-    try:
-        # For some reason, this doesn't work when blockchain.py is imported like
-        # modules/blockchain.py <- modules/__init__.py <- sponsorblockchain_main.py
+try:
+    # For some reason, this doesn't work when blockchain.py is imported like
+    # modules/blockchain.py <- modules/__init__.py <- sponsorblockchain_main.py
+    with lazyimports.lazy_imports(
+            "..sponsorblockchain_type_aliases:TransactionDict",
+            "..sponsorblockchain_type_aliases:BlockDict"):
         from ..sponsorblockchain_type_aliases import (
             TransactionDict, BlockDict)
-    except ImportError:
-        try:
-            # Running the blockchain directly from a script
-            # in the blockchain root directory
+except ImportError:
+    try:
+        # Running the blockchain directly from a script
+        # in the blockchain root directory
+        with lazyimports.lazy_imports(
+                "sponsorblockchain_type_aliases:TransactionDict",
+                "sponsorblockchain_type_aliases:BlockDict"):
             from sponsorblockchain_type_aliases import (
                 TransactionDict, BlockDict)
-        except ImportError:
-            # Running the blockchain as a package
+    except ImportError:
+        # Running the blockchain as a package
+        transaction_dict_import: str = (
+            "sponsorblockchain.sponsorblockchain_type_aliases:TransactionDict")
+        block_dict_import: str = (
+            "sponsorblockchain.sponsorblockchain_type_aliases:BlockDict")
+        with lazyimports.lazy_imports(
+                transaction_dict_import, block_dict_import):
             from sponsorblockchain.sponsorblockchain_type_aliases import (
                 TransactionDict, BlockDict)
 # endregion
+
 
 class Blockchain:
     # region Chain init
@@ -492,6 +505,7 @@ class Blockchain:
             return_message = "The transactions file is valid."
             print(return_message)
             return (return_message, True)
+
 
 if __name__ == "__main__":
     print("This module is not meant to be run directly.")

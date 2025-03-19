@@ -9,14 +9,22 @@ from pathlib import Path
 from typing import Tuple
 
 # Third party
+import lazyimports
 from flask import Flask, request, jsonify, Response, send_file
 from dotenv import load_dotenv
 
 # Local
-from type_aliases import SlotMachineConfig, BotConfig
-from utils.decrypt_transactions import (
-    DecryptedTransactionsSpreadsheet)
-from utils.get_project_root import get_project_root
+with lazyimports.lazy_imports(
+        "type_aliases:SlotMachineConfig",
+        "type_aliases:BotConfig",
+        "utils.decrypt_transactions:DecryptedTransactionsSpreadsheet",
+        "utils.get_project_root:get_project_root",
+        "core.global_state:decrypted_transactions_spreadsheet"):
+    from type_aliases import SlotMachineConfig, BotConfig
+    from utils.decrypt_transactions import (
+        DecryptedTransactionsSpreadsheet)
+    from utils.get_project_root import get_project_root
+    import core.global_state as g
 # endregion
 
 # region Constants
@@ -50,8 +58,8 @@ save_data_dir_full_path: Path = (
 save_data_dir_path: Path = (
     save_data_dir_full_path.relative_to(project_root_path))
 
-decrypted_transactions_path: Path = project_root_path / "data" / "transactions_decrypted.tsv"
-decrypted_transactions_spreadsheet = DecryptedTransactionsSpreadsheet()
+decrypted_transactions_path: Path = (
+    project_root_path / "data" / "transactions_decrypted.tsv")
 # endregion
 
 # region Functions
@@ -87,9 +95,10 @@ def save_bot_config(config: BotConfig) -> None:
 
 
 def register_routes(app: Flask) -> None:
+    print("Registering blockchain routes...")
     @app.route("/set_slot_machine_config", methods=["POST"])
     # API Route: Add a slot machine config
-    def set_slot_machine_config() -> Tuple[Response, int]:
+    def set_slot_machine_config() -> Tuple[Response, int]:  # type: ignore
         print("Received request to set slot machine config.")
         token: str | None = request.headers.get("token")
         message: str
@@ -119,7 +128,7 @@ def register_routes(app: Flask) -> None:
 
     @app.route("/get_slot_machine_config", methods=["GET"])
     # API Route: Get the slot machine config
-    def get_slot_machine_config() -> Tuple[Response, int]:
+    def get_slot_machine_config() -> Tuple[Response, int]:  # type: ignore
         print("Received request to get slot machine config.")
         message: str
         token: str | None = request.headers.get("token")
@@ -142,7 +151,7 @@ def register_routes(app: Flask) -> None:
 
     @app.route("/set_bot_config", methods=["POST"])
     # API Route: Set the bot config
-    def set_bot_config() -> Tuple[Response, int]:
+    def set_bot_config() -> Tuple[Response, int]:  # type: ignore
         print("Received request to set bot config.")
         message: str
         token: str | None = request.headers.get("token")
@@ -171,7 +180,7 @@ def register_routes(app: Flask) -> None:
 
     @app.route("/get_bot_config", methods=["GET"])
     # API Route: Get the bot config
-    def get_bot_config() -> Tuple[Response, int]:
+    def get_bot_config() -> Tuple[Response, int]:  # type: ignore
         print("Received request to get bot config.")
         message: str
         token: str | None = request.headers.get("token")
@@ -194,7 +203,7 @@ def register_routes(app: Flask) -> None:
 
     @app.route("/download_checkpoints", methods=["GET"])
     # API Route: Download the checkpoints
-    def download_checkpoints() -> Tuple[Response, int]:
+    def download_checkpoints() -> Tuple[Response, int]:  # type: ignore
         print("Received request to download checkpoints.")
         message: str
         token: str | None = request.headers.get("token")
@@ -236,7 +245,7 @@ def register_routes(app: Flask) -> None:
 
     @app.route("/upload_checkpoints", methods=["POST"])
     # API Route: Upload checkpoints
-    def upload_checkpoints() -> Tuple[Response, int]:
+    def upload_checkpoints() -> Tuple[Response, int]:  # type: ignore
         print("Received request to upload checkpoints.")
         message: str
         token: str | None = request.headers.get("token")
@@ -273,7 +282,7 @@ def register_routes(app: Flask) -> None:
 
     @app.route("/delete_checkpoints", methods=["DELETE"])
     # API Route: Delete checkpoints
-    def delete_checkpoints() -> Tuple[Response, int]:
+    def delete_checkpoints() -> Tuple[Response, int]:  # type: ignore
         print("Received request to delete checkpoints.")
         message: str
         token: str | None = request.headers.get("token")
@@ -299,7 +308,7 @@ def register_routes(app: Flask) -> None:
 
     @app.route("/download_save_data", methods=["GET"])
     # API Route: Download the save data
-    def download_save_data() -> Tuple[Response, int]:
+    def download_save_data() -> Tuple[Response, int]:  # type: ignore
         print("Received request to download save data.")
         message: str
         token: str | None = request.headers.get("token")
@@ -337,7 +346,7 @@ def register_routes(app: Flask) -> None:
 
     @app.route("/upload_save_data", methods=["POST"])
     # API Route: Upload save data
-    def upload_save_data() -> Tuple[Response, int]:
+    def upload_save_data() -> Tuple[Response, int]:  # type: ignore
         print("Received request to upload save data.")
         message: str
         token: str | None = request.headers.get("token")
@@ -374,7 +383,7 @@ def register_routes(app: Flask) -> None:
 
     @app.route("/download_transactions_decrypted", methods=["GET"])
     # API Route: Download the decrypted transactions
-    def download_transactions_decrypted() -> Tuple[Response, int]:
+    def download_transactions_decrypted() -> Tuple[Response, int]:  # type: ignore
         print("Received request to download decrypted transactions.")
         message: str
         token: str | None = request.headers.get("token")
@@ -392,7 +401,11 @@ def register_routes(app: Flask) -> None:
                 message = "Decrypted transactions not found."
                 print(message)
                 return jsonify({"message": message}), 404
-            decrypted_transactions_spreadsheet.decrypt()
+            assert isinstance(g.decrypted_transactions_spreadsheet,
+                              DecryptedTransactionsSpreadsheet), (
+                "decrypted_transactions_spreadsheet must be initialized "
+                "before downloading the decrypted transactions.")
+            g.decrypted_transactions_spreadsheet.decrypt()
             print("Decrypted transactions will be sent.")
             return send_file(
                 decrypted_transactions_path,
@@ -402,5 +415,5 @@ def register_routes(app: Flask) -> None:
             message = f"Error downloading decrypted transactions: {str(e)}"
             print(message)
             return jsonify({"message": message}), 500
-
+    print("Blockchain routes registered.")
     # endregion
