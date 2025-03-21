@@ -66,26 +66,26 @@ decrypted_transactions_path: Path = (
 
 
 def save_slot_config(config: SlotMachineConfig) -> None:
-    file_name: Path = slot_machine_config_path
-    file_exists: bool = os.path.exists(file_name)
+    path: Path = slot_machine_config_path
+    file_exists: bool = os.path.exists(path)
     file_empty: bool = file_exists and os.stat(
-        file_name).st_size == 0
+        path).st_size == 0
     if not file_exists or file_empty:
-        directories: Path = file_name.parent
+        directories: Path = path.parent
         os.makedirs(directories, exist_ok=True)
-    with open(file_name, "w") as file:
+    with open(path, "w") as file:
         file.write(json.dumps(config))
 
 
 def save_bot_config(config: BotConfig) -> None:
-    file_name: Path = bot_config_path
-    file_exists: bool = os.path.exists(file_name)
+    path: Path = bot_config_path
+    file_exists: bool = os.path.exists(path)
     file_empty: bool = file_exists and os.stat(
-        file_name).st_size == 0
+        path).st_size == 0
     if not file_exists or file_empty:
-        directories: Path = file_name.parent
+        directories: Path = path.parent
         os.makedirs(directories, exist_ok=True)
-    with open(file_name, "w") as file:
+    with open(path, "w") as file:
         file.write(json.dumps(config))
 # endregion
 

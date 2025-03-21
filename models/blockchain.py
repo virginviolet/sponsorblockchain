@@ -51,16 +51,16 @@ except ImportError:
 class Blockchain:
     # region Chain init
     def __init__(self,
-                 blockchain_file_name: str = "data/blockchain.json",
-                 transactions_file_name: str = "data/transactions.tsv") -> None:
-        self.blockchain_file_name: str = blockchain_file_name
-        self.transactions_file_name: str = transactions_file_name
-        file_exists: bool = os.path.exists(blockchain_file_name)
+                 blockchain_path: str = "data/blockchain.json",
+                 transactions_path: str = "data/transactions.tsv") -> None:
+        self.blockchain_path: str = blockchain_path
+        self.transactions_path: str = transactions_path
+        file_exists: bool = os.path.exists(blockchain_path)
         file_empty: bool = file_exists and os.stat(
-            blockchain_file_name).st_size == 0
+            blockchain_path).st_size == 0
         if not file_exists or file_empty:
-            directories: str = (self.blockchain_file_name[
-                :self.blockchain_file_name.rfind("/")])
+            directories: str = (self.blockchain_path[
+                :self.blockchain_path.rfind("/")])
             os.makedirs(directories, exist_ok=True)
             self.create_genesis_block()
 
@@ -78,7 +78,7 @@ class Blockchain:
     # region Block ops
     def write_block_to_file(self, block: Block) -> None:
         # Open the file in append mode
-        with open(self.blockchain_file_name, "a") as file:
+        with open(self.blockchain_path, "a") as file:
             # Convert the block object to dictionary, serialize it to JSON,
             # and write it to the file with a newline
             file.write(json.dumps(block.__dict__) + "\n")
@@ -130,15 +130,15 @@ class Blockchain:
     # region Chain utils
     def get_chain_length(self) -> int:
         # Open the blockchain file in read binary mode (faster than normal read)
-        with open(self.blockchain_file_name, "rb") as file:
+        with open(self.blockchain_path, "rb") as file:
             # Count the number of lines and return the count
             return sum(1 for _ in file)
 
     def get_last_block(self) -> None | Block:
-        if not os.path.exists(self.blockchain_file_name):
+        if not os.path.exists(self.blockchain_path):
             return None
         # Get the last line of the file
-        with open(self.blockchain_file_name, "rb") as file:
+        with open(self.blockchain_path, "rb") as file:
             # Go to the second last byte
             file.seek(-2, os.SEEK_END)
             try:
@@ -168,13 +168,13 @@ class Blockchain:
     def is_chain_valid(self) -> bool:
         # TODO force and repair parameters
         chain_validity = True
-        if not os.path.exists(self.blockchain_file_name):
+        if not os.path.exists(self.blockchain_path):
             chain_validity = False
         else:
             current_block: None | Block = None
             previous_block: None | Block = None
             # Open the blockchain file
-            with open(self.blockchain_file_name, "r") as file:
+            with open(self.blockchain_path, "r") as file:
                 for line in file:
                     if current_block:
                         previous_block = current_block
@@ -233,21 +233,21 @@ class Blockchain:
             receiver: str,
             amount: int,
             method: str) -> None:
-        file_existed: bool = os.path.exists(self.transactions_file_name)
+        file_existed: bool = os.path.exists(self.transactions_path)
         if not file_existed:
             self.create_transactions_file()
 
-        with open(self.transactions_file_name, "a") as file:
+        with open(self.transactions_path, "a") as file:
             file.write(
                 f"{timestamp}\t{sender}\t{receiver}\t{amount}\t{method}\n")
 
     def create_transactions_file(self) -> None:
-        file_exists: bool = os.path.exists(self.transactions_file_name)
+        file_exists: bool = os.path.exists(self.transactions_path)
         if not file_exists:
-            directories: str = (self.transactions_file_name[
-                :self.transactions_file_name.rfind("/")])
+            directories: str = (self.transactions_path[
+                :self.transactions_path.rfind("/")])
             os.makedirs(directories, exist_ok=True)
-        with open(self.transactions_file_name, "w") as file:
+        with open(self.transactions_path, "w") as file:
             file.write("Time\tSender\tReceiver\tAmount\tMethod\n")
 
     def get_balance(self,
@@ -260,12 +260,12 @@ class Blockchain:
         elif user_unhashed:
             user = hashlib.sha256(user_unhashed.encode()).hexdigest()
         # print(f"Getting balance for {user}...")
-        file_exists: bool = os.path.exists(self.transactions_file_name)
+        file_exists: bool = os.path.exists(self.transactions_path)
         if not file_exists:
             self.create_transactions_file()
         balance: int = 0
         transactions: pd.DataFrame = (
-            pd.read_csv(self.transactions_file_name, sep="\t"))  # type: ignore
+            pd.read_csv(self.transactions_path, sep="\t"))  # type: ignore
         if ((user in transactions["Sender"].values) or
                 (user in transactions["Receiver"].values)):
             sent: int = (transactions[(transactions["Sender"] == user) & (
@@ -343,20 +343,20 @@ class Blockchain:
         return_message: str = ("If you are receiving this message, something "
                                "went wrong.")
         mode: Mode = Mode.VALIDATE
-        file_existed: bool = os.path.exists(self.transactions_file_name)
+        file_existed: bool = os.path.exists(self.transactions_path)
         file_empty: bool = False
         tf_open_text_mode = "r"  # Allow reading only
         if file_existed:
             print("Transactions file found.")
             file_empty: bool = os.stat(
-                self.transactions_file_name).st_size == 0
+                self.transactions_path).st_size == 0
             print(f"repair: {repair}")
             print(f"force: {force}")
             if (repair or force):
                 tf_open_text_mode = "r+"  # Allow reading and writing
             if (file_empty) and (repair or force):
                 print("Transactions file is empty. It will be replaced.")
-                os.remove(self.transactions_file_name)
+                os.remove(self.transactions_path)
                 self.create_transactions_file()
                 mode = Mode.APPEND
             elif file_empty:
@@ -376,8 +376,8 @@ class Blockchain:
                 print(finished_early_message)
                 return (return_message, False)
 
-        with open(self.blockchain_file_name, "r") as bcf, open(
-                self.transactions_file_name, tf_open_text_mode) as tf:
+        with open(self.blockchain_path, "r") as bcf, open(
+                self.transactions_path, tf_open_text_mode) as tf:
             tf_lines: (
                 Generator[Tuple[int, str], None, None]) = line_generator(tf)
 

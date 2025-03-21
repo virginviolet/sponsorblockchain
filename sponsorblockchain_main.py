@@ -46,9 +46,7 @@ if __package__ == "sponsorblockchain" and register_routes:
 else:
     print("Will not register extension routes because "
           "the blockchain is not running as a package.")
-# endregion
 
-# region Start chain
 blockchain: Blockchain = Blockchain()
 # endregion
 
@@ -117,7 +115,7 @@ def add_block() -> Tuple[Response, int]:
 def get_chain() -> Tuple[Response, int]:
     print("Received request to get the blockchain.")
     print("Retrieving blockchain...")
-    with open(blockchain.blockchain_file_name, "r") as file:
+    with open(blockchain.blockchain_path, "r") as file:
         chain_data: list[dict[str, Any]] = [
             json.loads(line) for line in file.readlines()]
         print("Blockchain retrieved.")
@@ -129,7 +127,7 @@ def get_chain() -> Tuple[Response, int]:
 # API Route: Download the blockchain
 def download_chain() -> Tuple[Response | Any, int]:
     print("Received request to download the blockchain.")
-    file_exists: bool = os.path.exists(blockchain.blockchain_file_name)
+    file_exists: bool = os.path.exists(blockchain.blockchain_path)
     if not file_exists:
         message = "No blockchain found."
         print(message)
@@ -137,7 +135,7 @@ def download_chain() -> Tuple[Response | Any, int]:
     else:
         print("Blockchain will be sent as a file.")
         return send_file(
-            blockchain.blockchain_file_name,
+            blockchain.blockchain_path,
             as_attachment=True), 200
 
 
@@ -212,7 +210,7 @@ def shutdown() -> Tuple[Response, int]:
 # API Route: Download the transactions file
 def download_transactions() -> Tuple[Response | Any, int]:
     print("Received request to download the transactions file.")
-    file_exists: bool = os.path.exists(blockchain.transactions_file_name)
+    file_exists: bool = os.path.exists(blockchain.transactions_path)
     if not file_exists:
         message = "No transactions found."
         print(message)
@@ -220,7 +218,7 @@ def download_transactions() -> Tuple[Response | Any, int]:
     else:
         print("Transactions file will be sent as a file.")
         return send_file(
-            blockchain.transactions_file_name,
+            blockchain.transactions_path,
             as_attachment=True), 200
 
 
