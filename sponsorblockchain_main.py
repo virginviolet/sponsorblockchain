@@ -27,11 +27,13 @@ else:
         from sponsorblockchain.sponsorblockchain_type_aliases import (
             TransactionDict)
         from sponsorblockchain.models.block import Block
+    sponsorblockcasino_extension_register_routes_import: str = (
+        "sponsorblockchain.extensions.sponsorblockcasino_extension:")
     with lazyimports.lazy_imports(
             "sponsorblockchain.models.blockchain:Blockchain",
-            "sponsorblockchain.extensions.discord_coin_bot_extension:register_routes"):
+            sponsorblockcasino_extension_register_routes_import):
         from sponsorblockchain.models.blockchain import Blockchain
-        from sponsorblockchain.extensions.discord_coin_bot_extension import (
+        from sponsorblockchain.extensions.sponsorblockcasino_extension import (
         register_routes)
 # endregion
 
