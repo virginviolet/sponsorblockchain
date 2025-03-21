@@ -8,6 +8,7 @@ import os
 import json
 import hashlib
 import enum
+from pathlib import Path
 from io import TextIOWrapper
 from typing import Generator, Tuple, Dict, List
 
@@ -51,16 +52,18 @@ except ImportError:
 class Blockchain:
     # region Chain init
     def __init__(self,
-                 blockchain_path: str = "data/blockchain.json",
-                 transactions_path: str = "data/transactions.tsv") -> None:
-        self.blockchain_path: str = blockchain_path
-        self.transactions_path: str = transactions_path
+                 blockchain_path: Path = Path(
+                     "data/blockchain.json"),
+                 transactions_path: Path = Path(
+                    "data/transactions.tsv")) -> None:
+
+        self.blockchain_path: Path = blockchain_path
+        self.transactions_path: Path = transactions_path
         file_exists: bool = os.path.exists(blockchain_path)
         file_empty: bool = file_exists and os.stat(
-            blockchain_path).st_size == 0
+            self.blockchain_path).st_size == 0
         if not file_exists or file_empty:
-            directories: str = (self.blockchain_path[
-                :self.blockchain_path.rfind("/")])
+            directories: Path = self.blockchain_path.parent
             os.makedirs(directories, exist_ok=True)
             self.create_genesis_block()
 
@@ -244,8 +247,7 @@ class Blockchain:
     def create_transactions_file(self) -> None:
         file_exists: bool = os.path.exists(self.transactions_path)
         if not file_exists:
-            directories: str = (self.transactions_path[
-                :self.transactions_path.rfind("/")])
+            directories: Path = self.transactions_path.parent
             os.makedirs(directories, exist_ok=True)
         with open(self.transactions_path, "w") as file:
             file.write("Time\tSender\tReceiver\tAmount\tMethod\n")
