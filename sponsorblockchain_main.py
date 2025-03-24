@@ -2,7 +2,6 @@
 # Standard Library
 import os
 import json
-from pathlib import Path
 from sys import exit as sys_exit
 from typing import Tuple, Dict, List, Any, Callable, TYPE_CHECKING
 
@@ -13,17 +12,15 @@ from dotenv import load_dotenv
 
 # Local
 register_routes: Callable[[Flask], None] | None = None
-if __name__ == "__main__" or __package__ is None or __package__ == "":
+if __name__ == "__main__" or __package__ == "":
     # Running as a script or from the parent directory
     if TYPE_CHECKING:
         from sponsorblockchain_type_aliases import (
             TransactionDict)
         from models.block import Block
     with lazyimports.lazy_imports(
-            "models.blockchain:Blockchain",
-            "blockchain_configuration:BlockchainConfiguration"):
+            "models.blockchain:Blockchain"):
         from models.blockchain import Blockchain
-        from blockchain_configuration import BlockchainConfiguration
 else:
     # Running as a package
     if TYPE_CHECKING:
@@ -32,14 +29,9 @@ else:
         from sponsorblockchain.models.block import Block
     sponsorblockcasino_extension_register_routes_import: str = (
         "sponsorblockchain.extensions.sponsorblockcasino_extension:")
-    blockchain_configuration_import: str = (
-        "sponsorblockchain.blockchain_configuration:BlockchainConfiguration")
     with lazyimports.lazy_imports(
-            blockchain_configuration_import,
             "sponsorblockchain.models.blockchain:Blockchain",
             sponsorblockcasino_extension_register_routes_import):
-        from sponsorblockchain.blockchain_configuration import (
-            BlockchainConfiguration)
         from sponsorblockchain.models.blockchain import Blockchain
         from sponsorblockchain.extensions.sponsorblockcasino_extension import (
         register_routes)
@@ -56,10 +48,8 @@ if __package__ == "sponsorblockchain" and register_routes:
 else:
     print("Will not register extension routes because "
           "the blockchain is not running as a package.")
-configuration: BlockchainConfiguration = BlockchainConfiguration()
-blockchain_path: Path = configuration.blockchain_path
-transactions_path: Path = configuration.transactions_path
-blockchain: Blockchain = Blockchain(blockchain_path, transactions_path)
+
+blockchain: Blockchain = Blockchain()
 # endregion
 
 # region API Routes
@@ -284,5 +274,5 @@ def get_balance() -> Tuple[Response, int]:
 # region Run Flask app
 if __name__ == "__main__":
     load_dotenv()
-    app.run(port=5000, debug=True)
+    app.run(port=8080, debug=True)
 # endregion
