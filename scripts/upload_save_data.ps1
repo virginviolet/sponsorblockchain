@@ -1,12 +1,16 @@
 try {
-    Write-Warning "This script will replace save data on the server."
     Import-Module Set-PsEnv
 
     Set-PsEnv
 
+    Write-Warning "This script will replace save data on the server."
+    Write-Host "Server URL: $Env:SERVER_URL"
+    Pause
+    
     # Create zip file with the slot machine configuration
     $scriptDirPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-    $botDirPath = Split-Path -Parent $scriptDirPath
+    $blockchainPackageDirPath = Split-Path -Parent $scriptDirPath
+    $botDirPath = Split-Path -Parent $blockchainPackageDirPath
     $saveDataDirPath = "$botDirPath\data\save_data"
     $zipFilePath = Join-Path -Path $scriptDirPath -ChildPath 'save_data.zip'
     $zipFilExists = Test-Path -Path $zipFilePath
@@ -14,10 +18,8 @@ try {
         Write-Host "Will use existing save_data.zip file."
         Pause
     } else {
-        Pause
         Compress-Archive -Path $saveDataDirPath -DestinationPath $zipFilePath
     }
-    Write-Host "Server URL: $Env:SERVER_URL"
     Invoke-RestMethod -Uri "$Env:SERVER_URL/upload_save_data" `
         -Method 'Post' `
         -Headers @{ 'token' = $Env:SERVER_TOKEN } `
