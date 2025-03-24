@@ -9,3 +9,4 @@ data/blockchain.json
 *.tsv
 *_downloaded.json
 *_production.*
+data/blockchain_configuration.json
