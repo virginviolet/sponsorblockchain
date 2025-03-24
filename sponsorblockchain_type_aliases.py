@@ -7,6 +7,10 @@ from typing import List, Dict, TypedDict
 # region Type aliases
 
 
+class BlockchainConfig(TypedDict):
+    blockchain_path: str
+    transactions_path: str
+
 class TransactionDict(TypedDict):
     sender: str
     receiver: str
