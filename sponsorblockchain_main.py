@@ -50,6 +50,10 @@ else:
           "the blockchain is not running as a package.")
 
 blockchain: Blockchain = Blockchain()
+# The send_file method does not work for me
+# without resolving the paths (Flask bug?)
+blockchain_path_resolved: str = str(blockchain.blockchain_path.resolve())
+transactions_path_resolved: str = str(blockchain.transactions_path.resolve())
 # endregion
 
 # region API Routes
@@ -117,7 +121,7 @@ def add_block() -> Tuple[Response, int]:
 def get_chain() -> Tuple[Response, int]:
     print("Received request to get the blockchain.")
     print("Retrieving blockchain...")
-    with open(blockchain.blockchain_path, "r") as file:
+    with open(blockchain_path_resolved, "r") as file:
         chain_data: list[dict[str, Any]] = [
             json.loads(line) for line in file.readlines()]
         print("Blockchain retrieved.")
@@ -129,7 +133,7 @@ def get_chain() -> Tuple[Response, int]:
 # API Route: Download the blockchain
 def download_chain() -> Tuple[Response | Any, int]:
     print("Received request to download the blockchain.")
-    file_exists: bool = os.path.exists(blockchain.blockchain_path)
+    file_exists: bool = os.path.exists(blockchain_path_resolved)
     if not file_exists:
         message = "No blockchain found."
         print(message)
@@ -137,7 +141,7 @@ def download_chain() -> Tuple[Response | Any, int]:
     else:
         print("Blockchain will be sent as a file.")
         return send_file(
-            blockchain.blockchain_path,
+            blockchain_path_resolved,
             as_attachment=True), 200
 
 
@@ -212,7 +216,7 @@ def shutdown() -> Tuple[Response, int]:
 # API Route: Download the transactions file
 def download_transactions() -> Tuple[Response | Any, int]:
     print("Received request to download the transactions file.")
-    file_exists: bool = os.path.exists(blockchain.transactions_path)
+    file_exists: bool = os.path.exists(transactions_path_resolved)
     if not file_exists:
         message = "No transactions found."
         print(message)
@@ -220,7 +224,7 @@ def download_transactions() -> Tuple[Response | Any, int]:
     else:
         print("Transactions file will be sent as a file.")
         return send_file(
-            blockchain.transactions_path,
+            transactions_path_resolved,
             as_attachment=True), 200
 
 

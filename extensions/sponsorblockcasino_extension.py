@@ -18,13 +18,11 @@ with lazyimports.lazy_imports(
         "type_aliases:SlotMachineConfig",
         "type_aliases:BotConfig",
         "utils.decrypt_transactions:DecryptedTransactionsSpreadsheet",
-        "utils.get_project_root:get_project_root",
-        "core.global_state:decrypted_transactions_spreadsheet"):
+        "utils.get_project_root:get_project_root"):
     from type_aliases import SlotMachineConfig, BotConfig
     from utils.decrypt_transactions import (
         DecryptedTransactionsSpreadsheet)
     from utils.get_project_root import get_project_root
-    import core.global_state as g
 # endregion
 
 # region Constants
@@ -384,6 +382,7 @@ def register_routes(app: Flask) -> None:
     @app.route("/download_transactions_decrypted", methods=["GET"])
     # API Route: Download the decrypted transactions
     def download_transactions_decrypted() -> Tuple[Response, int]:  # type: ignore
+        # TODO Add user_id and user_name parameters
         print("Received request to download decrypted transactions.")
         message: str
         token: str | None = request.headers.get("token")
@@ -401,11 +400,9 @@ def register_routes(app: Flask) -> None:
                 message = "Decrypted transactions not found."
                 print(message)
                 return jsonify({"message": message}), 404
-            assert isinstance(g.decrypted_transactions_spreadsheet,
-                              DecryptedTransactionsSpreadsheet), (
-                "decrypted_transactions_spreadsheet must be initialized "
-                "before downloading the decrypted transactions.")
-            g.decrypted_transactions_spreadsheet.decrypt()
+            decrypted_transactions_spreadsheet = (
+                DecryptedTransactionsSpreadsheet())
+            decrypted_transactions_spreadsheet.decrypt()
             print("Decrypted transactions will be sent.")
             return send_file(
                 decrypted_transactions_path,

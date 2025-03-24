@@ -56,13 +56,12 @@ class Blockchain:
                      "data/blockchain.json"),
                  transactions_path: Path = Path(
                     "data/transactions.tsv")) -> None:
-
         self.blockchain_path: Path = blockchain_path
         self.transactions_path: Path = transactions_path
         file_exists: bool = os.path.exists(blockchain_path)
         file_empty: bool = file_exists and os.stat(
             self.blockchain_path).st_size == 0
-        if not file_exists or file_empty:
+        if file_empty or not file_exists:
             directories: Path = self.blockchain_path.parent
             os.makedirs(directories, exist_ok=True)
             self.create_genesis_block()
