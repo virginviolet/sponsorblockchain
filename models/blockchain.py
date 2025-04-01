@@ -100,6 +100,15 @@ class Blockchain:
         for item in new_block.data:
             if isinstance(item, dict) and "transaction" in item:
                 transaction: TransactionDict = item["transaction"]
+                if transaction["sender"] == "":
+                    print("Transaction sender is empty.")
+                    return
+                elif transaction["receiver"] == "":
+                    print("Transaction receiver is empty.")
+                    return
+                elif transaction["amount"] == 0:
+                    print("Transaction amount is 0.")
+                    return
                 # TODO Add hash for each transaction
                 self.store_transaction(
                     new_block.timestamp,

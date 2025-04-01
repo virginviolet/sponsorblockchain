@@ -3,7 +3,7 @@
 import os
 import json
 from sys import exit as sys_exit
-from typing import Tuple, Dict, List, Any, Callable, TYPE_CHECKING
+from typing import Tuple, Dict, List, Any, Callable, cast, TYPE_CHECKING
 
 # Third party
 import lazyimports
@@ -15,8 +15,6 @@ register_routes: Callable[[Flask], None] | None = None
 if __name__ == "__main__" or __package__ == "":
     # Running as a script or from the parent directory
     if TYPE_CHECKING:
-        from sponsorblockchain_type_aliases import (
-            TransactionDict)
         from models.block import Block
     with lazyimports.lazy_imports(
             "models.blockchain:Blockchain"):
@@ -24,8 +22,6 @@ if __name__ == "__main__" or __package__ == "":
 else:
     # Running as a package
     if TYPE_CHECKING:
-        from sponsorblockchain.sponsorblockchain_type_aliases import (
-            TransactionDict)
         from sponsorblockchain.models.block import Block
     sponsorblockcasino_extension_register_routes_import: str = (
         "sponsorblockchain.extensions.sponsorblockcasino_extension:")
@@ -34,7 +30,7 @@ else:
             sponsorblockcasino_extension_register_routes_import):
         from sponsorblockchain.models.blockchain import Blockchain
         from sponsorblockchain.extensions.sponsorblockcasino_extension import (
-        register_routes)
+            register_routes)
 # endregion
 
 # region Init
@@ -63,7 +59,7 @@ transactions_path_resolved: str = str(blockchain.transactions_path.resolve())
 # API Route: Add a new block to the blockchain
 def add_block() -> Tuple[Response, int]:
     print("Received request to add a block.")
-    message: str
+    message: str | None = None
     token: str | None = request.headers.get("token")
     if not token:
         message = "Token is required."
@@ -85,7 +81,7 @@ def add_block() -> Tuple[Response, int]:
         message = "'data' key not found in request."
         print(message)
         return jsonify({"message": message}), 400
-    data = request.get_json().get("data")
+    data: Any = request.get_json().get("data")
     if not data:
         message = "The 'data' key is empty."
         print(message)
@@ -96,10 +92,75 @@ def add_block() -> Tuple[Response, int]:
         message = "Data must be a list of strings or dictionaries."
         print(message)
         return jsonify({"message": message}), 400
-    data_cast: List[str | Dict[str, TransactionDict]] = data
-
+    print(f"Data: {data}")
+    # Ensure that no fields are missing in transactions
+    should_send_400: bool = False
+    if not isinstance(data, list):
+        message = "Data must be a list."
+        should_send_400 = True
+    data = cast(List[Any], data)
+    if len(data) == 0:
+        message = "Data is empty."
+        should_send_400 = True
+    for data_unit in data:
+        data_unit: Any
+        if not isinstance(data_unit, dict):
+            continue
+        data_unit = cast(dict[Any, Any], data_unit)
+        if data_unit.get("transaction", "") == "":
+            continue
+        data_unit = cast(dict[str, Any], data_unit)
+        transaction: Any = data_unit.get("transaction")
+        if not isinstance(transaction, dict):
+            message = "Transaction must be a dictionary."
+            should_send_400 = True
+            break
+        data = cast(dict[str, Dict[Any, Any]], data_unit)
+        transaction = cast(dict[Any, Any], transaction)
+        print(f"Transaction: {transaction}")
+        required_fields: list[str | tuple[str, str]] = [
+            ("sender", "sender_unhashed"),
+            ("receiver", "receiver_unhashed"),
+            "amount",
+            "method"
+        ]
+        for field in required_fields:
+            print(f"Checking field: {field}")
+            if isinstance(field, tuple):
+                if all(transaction.get(f, "") == "" for f in field):
+                    message = f"{' or '.join(field)} is required."
+                    should_send_400 = True
+                    break
+            else:
+                if transaction.get(field, "") == "":
+                    message = f"{field} is required."
+                    should_send_400 = True
+                    break
+        if should_send_400:
+            break
+        if not isinstance(transaction.get("amount"), int):
+            try:
+                transaction["amount"] = int(transaction["amount"])
+            except ValueError:
+                message = "amount must be an integer."
+                should_send_400 = True
+                break
+        # Ensure no extra fields are present
+        allowed_fields: set[str] = {
+            "sender", "sender_unhashed", "receiver", "receiver_unhashed", "amount", "method"}
+        extra_fields: set[Any] = set(transaction.keys()) - allowed_fields
+        if extra_fields:
+            message = (f"Extra fields are not allowed: "
+                       f"{', '.join(extra_fields)}")
+            should_send_400 = True
+            break
+    if should_send_400:
+        if message is None:
+            raise ValueError("message is None.")
+        print(message)
+        return jsonify({"message": message}), 400
     try:
-        blockchain.add_block(data_cast)
+        blockchain.add_block(data)
         last_block: None | Block = blockchain.get_last_block()
         if last_block and last_block.data != data:
             message = "Block could not be added."
