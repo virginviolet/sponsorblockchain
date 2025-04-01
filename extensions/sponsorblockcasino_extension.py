@@ -17,47 +17,26 @@ from dotenv import load_dotenv
 with lazyimports.lazy_imports(
         "type_aliases:SlotMachineConfig",
         "type_aliases:BotConfig",
-        "utils.decrypt_transactions:DecryptedTransactionsSpreadsheet",
-        "utils.get_project_root:get_project_root"):
+        "utils.decrypt_transactions:DecryptedTransactionsSpreadsheet"):
     from type_aliases import SlotMachineConfig, BotConfig
     from utils.decrypt_transactions import (
         DecryptedTransactionsSpreadsheet)
-    from utils.get_project_root import get_project_root
 # endregion
 
 # region Constants
 # Load .env file for the server token
 load_dotenv()
 SERVER_TOKEN: str | None = os.getenv('SERVER_TOKEN')
-# FIXME Set path in global_state?
-project_root_path: Path = get_project_root()
 
-slot_machine_config_full_path: Path = (
-    project_root_path / "data" / "slot_machine.json")
+slot_machine_config_path: Path = Path("data/slot_machine.json")
 
-slot_machine_config_path: Path = (
-    slot_machine_config_full_path.relative_to(project_root_path))
+bot_config_path: Path = Path("data/bot_configuration.json")
 
-bot_config_full_path: Path = (
-    project_root_path / "data" / "bot_configuration.json")
+checkpoints_dir_path: Path = Path("data/checkpoints")
 
-bot_config_path: Path = (
-    bot_config_full_path.relative_to(project_root_path))
+save_data_dir_path: Path = Path("data/save_data")
 
-checkpoints_dir_full_path: Path = (
-    project_root_path / "data" / "checkpoints")
-
-checkpoints_dir_path: Path = (
-    checkpoints_dir_full_path.relative_to(project_root_path))
-
-save_data_dir_full_path: Path = (
-    project_root_path / "data" / "save_data")
-
-save_data_dir_path: Path = (
-    save_data_dir_full_path.relative_to(project_root_path))
-
-decrypted_transactions_path: Path = (
-    project_root_path / "data" / "transactions_decrypted.tsv")
+decrypted_transactions_path: Path = Path("data/transactions_decrypted.tsv")
 # endregion
 
 # region Functions
@@ -87,13 +66,15 @@ def save_bot_config(config: BotConfig) -> None:
         file.write(json.dumps(config))
 # endregion
 
-# region API Routes
-# TODO Get and set save data
-# TODO Get and set checkpoints
+
 
 
 def register_routes(app: Flask) -> None:
+    # TODO Grifter suppliers dl
+    # TODO Grifter suppliers set
+
     print("Registering blockchain routes...")
+    # region Slot config set
     @app.route("/set_slot_machine_config", methods=["POST"])
     # API Route: Add a slot machine config
     def set_slot_machine_config() -> Tuple[Response, int]:  # type: ignore
@@ -123,7 +104,8 @@ def register_routes(app: Flask) -> None:
         except Exception as e:
             message = f"Error saving slot machine config: {str(e)}"
             return jsonify({"message": message}), 500
-
+    # endregion
+    # region Bot config get
     @app.route("/get_slot_machine_config", methods=["GET"])
     # API Route: Get the slot machine config
     def get_slot_machine_config() -> Tuple[Response, int]:  # type: ignore
@@ -146,7 +128,9 @@ def register_routes(app: Flask) -> None:
             data: SlotMachineConfig = json.load(file)
             print("Slot machine config will be returned.")
             return jsonify(data), 200
+    # endregion
 
+    # region Bot config set
     @app.route("/set_bot_config", methods=["POST"])
     # API Route: Set the bot config
     def set_bot_config() -> Tuple[Response, int]:  # type: ignore
@@ -175,7 +159,9 @@ def register_routes(app: Flask) -> None:
             message = f"Error saving bot config: {str(e)}"
             print(message)
             return jsonify({"message": message}), 500
+    # endregion
 
+    # region Bot config get
     @app.route("/get_bot_config", methods=["GET"])
     # API Route: Get the bot config
     def get_bot_config() -> Tuple[Response, int]:  # type: ignore
@@ -198,7 +184,9 @@ def register_routes(app: Flask) -> None:
             data: BotConfig = json.load(file)
             print("Bot config will be returned.")
             return jsonify(data), 200
+    # endregion
 
+    # region Checkpoints dl
     @app.route("/download_checkpoints", methods=["GET"])
     # API Route: Download the checkpoints
     def download_checkpoints() -> Tuple[Response, int]:  # type: ignore
@@ -240,7 +228,9 @@ def register_routes(app: Flask) -> None:
             as_attachment=True,
             download_name="checkpoints.zip")
         return response, 200
+    # endregion
 
+    # region Checkpoints ul
     @app.route("/upload_checkpoints", methods=["POST"])
     # API Route: Upload checkpoints
     def upload_checkpoints() -> Tuple[Response, int]:  # type: ignore
@@ -277,7 +267,9 @@ def register_routes(app: Flask) -> None:
             message = f"Error uploading checkpoints: {str(e)}"
             print(message)
             return jsonify({"message": message}), 500
+    # endregion
 
+    # region Checkpoints del
     @app.route("/delete_checkpoints", methods=["DELETE"])
     # API Route: Delete checkpoints
     def delete_checkpoints() -> Tuple[Response, int]:  # type: ignore
@@ -303,7 +295,9 @@ def register_routes(app: Flask) -> None:
             print(message)
             return jsonify(
                 {"message": message}), 500
+    # endregion
 
+    # region Save data dl
     @app.route("/download_save_data", methods=["GET"])
     # API Route: Download the save data
     def download_save_data() -> Tuple[Response, int]:  # type: ignore
@@ -341,7 +335,9 @@ def register_routes(app: Flask) -> None:
             message = f"Error downloading save data: {str(e)}"
             print(message)
             return jsonify({"message": message}), 500
+    # endregion
 
+    # region Save data ul
     @app.route("/upload_save_data", methods=["POST"])
     # API Route: Upload save data
     def upload_save_data() -> Tuple[Response, int]:  # type: ignore
@@ -378,10 +374,13 @@ def register_routes(app: Flask) -> None:
             message = f"Error uploading save data: {str(e)}"
             print(message)
             return jsonify({"message": message}), 500
+    # endregion
 
+    # region Tx decrypted dl
     @app.route("/download_transactions_decrypted", methods=["GET"])
     # API Route: Download the decrypted transactions
-    def download_transactions_decrypted() -> Tuple[Response, int]:  # type: ignore
+    def download_transactions_decrypted() -> (  # type: ignore
+        Tuple[Response, int]):
         # TODO Add user_id and user_name parameters
         print("Received request to download decrypted transactions.")
         message: str
@@ -395,7 +394,12 @@ def register_routes(app: Flask) -> None:
             print(message)
             return jsonify({"message": message}), 400
         try:
-            file_exists: bool = os.path.exists(decrypted_transactions_path)
+            # The send_file method does not work for me
+            # without resolving the paths (Flask bug?)
+            decrypted_transactions_path_resolved: str = (
+                str(decrypted_transactions_path.resolve()))
+            file_exists: bool = (
+                os.path.exists(decrypted_transactions_path_resolved))
             if not file_exists:
                 message = "Decrypted transactions not found."
                 print(message)
@@ -405,7 +409,7 @@ def register_routes(app: Flask) -> None:
             decrypted_transactions_spreadsheet.decrypt()
             print("Decrypted transactions will be sent.")
             return send_file(
-                decrypted_transactions_path,
+                decrypted_transactions_path_resolved,
                 mimetype="text/tab-separated-values",
                 as_attachment=True), 200
         except Exception as e:
