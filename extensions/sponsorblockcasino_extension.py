@@ -6,12 +6,16 @@ import zipfile
 import shutil
 from io import BytesIO
 from pathlib import Path
-from typing import Tuple
+from typing import Tuple, Dict, TYPE_CHECKING
 
 # Third party
 import lazyimports
 from flask import Flask, request, jsonify, Response, send_file
 from dotenv import load_dotenv
+
+if TYPE_CHECKING:
+    from type_aliases import MessageMiningTimeline
+# endregion
 
 # Local
 with lazyimports.lazy_imports(
@@ -29,14 +33,12 @@ load_dotenv()
 SERVER_TOKEN: str | None = os.getenv('SERVER_TOKEN')
 
 slot_machine_config_path: Path = Path("data/slot_machine.json")
-
 bot_config_path: Path = Path("data/bot_configuration.json")
-
 checkpoints_dir_path: Path = Path("data/checkpoints")
-
 save_data_dir_path: Path = Path("data/save_data")
-
 decrypted_transactions_path: Path = Path("data/transactions_decrypted.tsv")
+message_mining_registry_path: Path = Path(
+    "data/message_mining_registry.json")
 # endregion
 
 # region Functions
@@ -67,14 +69,13 @@ def save_bot_config(config: BotConfig) -> None:
 # endregion
 
 
-
-
 def register_routes(app: Flask) -> None:
     # TODO Grifter suppliers dl
     # TODO Grifter suppliers set
 
     print("Registering blockchain routes...")
     # region Slot config set
+
     @app.route("/set_slot_machine_config", methods=["POST"])
     # API Route: Add a slot machine config
     def set_slot_machine_config() -> Tuple[Response, int]:  # type: ignore
@@ -106,6 +107,7 @@ def register_routes(app: Flask) -> None:
             return jsonify({"message": message}), 500
     # endregion
     # region Bot config get
+
     @app.route("/get_slot_machine_config", methods=["GET"])
     # API Route: Get the slot machine config
     def get_slot_machine_config() -> Tuple[Response, int]:  # type: ignore
@@ -219,7 +221,7 @@ def register_routes(app: Flask) -> None:
             print("Zip file created in memory.")
         except Exception as e:
             return jsonify(
-                {"message": f"Error downloading checkpoints: {str(e)}"}), 500
+                {"message": f"Error sending checkpoints: {str(e)}"}), 500
         memory_file.seek(0)
         print("Checkpoints will be sent.")
         response: Response = send_file(
@@ -264,7 +266,7 @@ def register_routes(app: Flask) -> None:
             print(message)
             return jsonify({"message": message}), 200
         except Exception as e:
-            message = f"Error uploading checkpoints: {str(e)}"
+            message = f"Error adding checkpoints: {str(e)}"
             print(message)
             return jsonify({"message": message}), 500
     # endregion
@@ -332,7 +334,7 @@ def register_routes(app: Flask) -> None:
                 as_attachment=True,
                 download_name="save_data.zip"), 200
         except Exception as e:
-            message = f"Error downloading save data: {str(e)}"
+            message = f"Error sending save data: {str(e)}"
             print(message)
             return jsonify({"message": message}), 500
     # endregion
@@ -371,7 +373,7 @@ def register_routes(app: Flask) -> None:
             print(message)
             return jsonify({"message": message}), 200
         except Exception as e:
-            message = f"Error uploading save data: {str(e)}"
+            message = f"Error adding save data: {str(e)}"
             print(message)
             return jsonify({"message": message}), 500
     # endregion
@@ -379,8 +381,9 @@ def register_routes(app: Flask) -> None:
     # region Tx decrypted dl
     @app.route("/download_transactions_decrypted", methods=["GET"])
     # API Route: Download the decrypted transactions
+    # type: ignore
     def download_transactions_decrypted() -> (  # type: ignore
-        Tuple[Response, int]):
+            Tuple[Response, int]):
         # TODO Add user_id and user_name parameters
         print("Received request to download decrypted transactions.")
         message: str
@@ -413,8 +416,72 @@ def register_routes(app: Flask) -> None:
                 mimetype="text/tab-separated-values",
                 as_attachment=True), 200
         except Exception as e:
-            message = f"Error downloading decrypted transactions: {str(e)}"
+            message = f"Error sending decrypted transactions: {str(e)}"
+            print(message)
+            return jsonify({"message": message}), 500
+    # endregion
+
+    # region Mining registry get
+    @app.route("/get_mining_registry", methods=["GET"])
+    def get_mining_registry() -> Tuple[Response, int]:  # type: ignore
+        print("Received request to get message mining registry.")
+        message: str
+        token: str | None = request.headers.get("token")
+        if not token:
+            message = "Token is required."
+            print(message)
+            return jsonify({"message": message}), 400
+        if token != SERVER_TOKEN:
+            message = "Invalid token."
+            print(message)
+            return jsonify({"message": message}), 400
+        try:
+            file_exists: bool = (
+                os.path.exists(decrypted_transactions_path))
+            if not file_exists:
+                message = "Message mining registry not found."
+                print(message)
+                return jsonify({"message": message}), 404
+            with open(message_mining_registry_path, "r") as file:
+                data: Dict[str, Dict[str, MessageMiningTimeline]] = (
+                    json.load(file))
+                print("Message mining registry will be returned.")
+                return jsonify(data), 200
+        except Exception as e:
+            message = f"Error sending message mining registry: {str(e)}"
+            print(message)
+            return jsonify({"message": message}), 500
+        # endregion
+
+    # region Mining registry set
+    @app.route("/set_mining_registry", methods=["POST"])
+    def set_mining_registry() -> Tuple[Response, int]:  # type: ignore
+        print("Received request to set message mining registry.")
+        token: str | None = request.headers.get("token")
+        message: str
+        if not token:
+            message = "Token is required."
+            print(message)
+            return jsonify({"message": message}), 400
+        if token != SERVER_TOKEN:
+            message = "Invalid token."
+            print(message)
+            return jsonify({"message": message}), 400
+        data: Dict[str, Dict[str, MessageMiningTimeline]] = (
+            request.get_json())
+        if not data:
+            message = "Data is required."
+            print(message)
+            return jsonify({"message": message}), 400
+        try:
+            with open(message_mining_registry_path, "w") as file:
+                file.write(json.dumps(data, indent=4))
+                file.close()
+            message = "Message mining registry updated."
+            print(message)
+            return jsonify({"message": message}), 200
+        except Exception as e:
+            message = f"Error saving message mining registry: {str(e)}"
             print(message)
             return jsonify({"message": message}), 500
     print("Blockchain routes registered.")
-    # endregion
