@@ -55,7 +55,7 @@ class Blockchain:
                  blockchain_path: Path = Path(
                      "data/blockchain.json"),
                  transactions_path: Path = Path(
-                    "data/transactions.tsv")) -> None:
+                     "data/transactions.tsv")) -> None:
         self.blockchain_path: Path = blockchain_path
         self.transactions_path: Path = transactions_path
         file_exists: bool = os.path.exists(blockchain_path)
@@ -93,7 +93,8 @@ class Blockchain:
         new_block = Block(
             index=(latest_block.index + 1) if latest_block else 0,
             data=data,
-            previous_block_hash=latest_block.block_hash if latest_block else "0"
+            previous_block_hash=(
+                latest_block.block_hash if latest_block else "0")
         )
         if difficulty > 0:
             new_block.mine_block(difficulty)
@@ -140,7 +141,8 @@ class Blockchain:
 
     # region Chain utils
     def get_chain_length(self) -> int:
-        # Open the blockchain file in read binary mode (faster than normal read)
+        # Open the blockchain file in read binary mode
+        # (faster than normal read)
         with open(self.blockchain_path, "rb") as file:
             # Count the number of lines and return the count
             return sum(1 for _ in file)
@@ -202,14 +204,14 @@ class Blockchain:
                           f"{current_block.block_hash}")
                     print(f"Calculated hash:\t{calculated_hash}") """
                     if current_block.block_hash != calculated_hash:
-                        """ print(f"Block {current_block.index}'s hash does not "
-                              "match the calculated hash. This could mean that "
-                              "a block has been tampered with.") """
+                        """ print(f"Block {current_block.index}'s hash does "
+                              "not match the calculated hash. This could mean "
+                              "that a block has been tampered with.") """
                         chain_validity = False
                         break
                     """ else:
-                        print(f"Block {current_block.index}'s hash matches the "
-                              "calculated hash.") """
+                        print(f"Block {current_block.index}'s hash matches "
+                              "the calculated hash.") """
                     if previous_block:
                         """ print("\nPrevious block's "
                               f"block hash:\t\t\t{previous_block.block_hash}")
@@ -220,8 +222,8 @@ class Blockchain:
                             """ print(f"Block {current_block.index} "
                                   "\"Previous hash\" value does not "
                                   "match the previous block's hash. This "
-                                  "could mean that a block is missing or that "
-                                  "one has been incorrectly inserted.") """
+                                  "could mean that a block is missing or "
+                                  "that one has been incorrectly inserted.") """
                             chain_validity = False
                             break
                         else:
@@ -282,7 +284,6 @@ class Blockchain:
                 # type: ignore
                 transactions["Method"] != "reaction")]["Amount"].sum())
             # print(f"Total amount sent by {user}: {sent}")
-            # type: ignore
             received: int = (
                 transactions[transactions["Receiver"]
                              == user]["Amount"].sum())  # type: ignore
@@ -304,30 +305,38 @@ class Blockchain:
             force: bool = False) -> Tuple[str, bool]:
         """
         Validates the transactions file against the blockchain file.
-        By default, the function will only validate the files and print the
-        results. No changes will be made.
+
+        By default, the function will only validate the files and print
+        the results. No changes will be made.
 
         Returns:
-        Bool
+            Tuple[str, bool]: A message indicating the result of the
+            validation and a boolean indicating whether the file is
+            valid.
 
-        Parameter
-        repair
-            If True, transactions missing from the transactions file will be
-            added from the blockchain file.
-            Unless force is also True, operation will stop if it encounters
-            any inconsistencies between the files (beyond missing transactions
-            at the end of the transactions file).
-            If the file does not exist or is empty, a new file will be created.
+        Parameters:
+        ----------
+        repair : bool, optional
+            If True, transactions missing from the transactions file
+            will be added from the blockchain file.
+
+            Unless `force` is also True, the operation will stop if it
+            encounters any inconsistencies between the files (beyond
+            missing transactions at the end of the transactions file).
+
+            If the file does not exist or is empty, a new file will be
+            created.
+
             Default is False.
 
-        Parameter
-        force
-            If True, the function will create a new transactions file if it does
-            not exist or is empty.
+        force : bool, optional
+            If True, the function will create a new transactions file if
+            it does not exist or is empty.
 
-            If both repair and force are True, any data in the transactions file
-            that is inconsistent with the blockchain file will be replaced.
-            This may result in the loss of data in the transactions file.
+            If both `repair` and `force` are True, any data in the
+            transactions file that is inconsistent with the blockchain
+            file will be replaced. This may result in the loss of data
+            in the transactions file.
 
             Default is False.
         """
@@ -350,8 +359,8 @@ class Blockchain:
 
         finished_early_message: str = ("Transaction file validation has "
                                        "finished.")
-        return_message: str = ("If you are receiving this message, something "
-                               "went wrong.")
+        return_message: str
+        repair_messages: List[str] = []
         mode: Mode = Mode.VALIDATE
         file_existed: bool = os.path.exists(self.transactions_path)
         file_empty: bool = False
@@ -366,6 +375,8 @@ class Blockchain:
                 tf_open_text_mode = "r+"  # Allow reading and writing
             if (file_empty) and (repair or force):
                 print("Transactions file is empty. It will be replaced.")
+                repair_messages.append("The transactions file was empty and "
+                                       "has been replaced.")
                 os.remove(self.transactions_path)
                 self.create_transactions_file()
                 mode = Mode.APPEND
@@ -376,7 +387,11 @@ class Blockchain:
                 return (return_message, False)
         else:
             if force or repair:
-                print("Transaction file not found. A new file will be created.")
+                print("Transaction file not found. "
+                      "A new file will be created.")
+                repair_messages.append("The transactions file was not found "
+                                       "and a new one has been created.")
+
                 self.create_transactions_file()
                 mode = Mode.APPEND
                 tf_open_text_mode = "a+"  # Allow appending and reading
@@ -389,7 +404,8 @@ class Blockchain:
         with open(self.blockchain_path, "r") as bcf, open(
                 self.transactions_path, tf_open_text_mode) as tf:
             tf_lines: (
-                Generator[Tuple[int, str], None, None]) = line_generator(tf)
+                Generator[Tuple[int, str], None, None]) = (
+                    line_generator(tf))
 
             # Read the first line (column headers)
             tf_position: int | None = None
@@ -418,6 +434,9 @@ class Blockchain:
                                 if repair:
                                     print("Data will be appended to the "
                                           "transactions file.")
+                                    repair_messages.append(
+                                        "Data missing from the transactions "
+                                        "file and has been added.")
                                     mode = Mode.APPEND
                                 else:
                                     return_message = (
@@ -437,6 +456,9 @@ class Blockchain:
                                     if repair and force:
                                         print("Contents of the transactions "
                                               "file will be replaced.")
+                                        repair_messages.append(
+                                            "The transactions file was "
+                                            "invalid and has been replaced.")
                                         tf.truncate(tf_position)
                                         mode = Mode.APPEND
                                     else:
@@ -446,11 +468,19 @@ class Blockchain:
                                     tf_line_transaction_time = float(
                                         tf_line_columns_list[0])
 
-                                    tf_line_transaction_sender: str = (
-                                        tf_line_columns_list[1])
+                                    # I accidentally added None in some blocks,
+                                    # so I need to check for that
+                                    tf_line_transaction_sender: (
+                                        str | None) = (
+                                        None if tf_line_columns_list[1]
+                                        == "None"
+                                        else tf_line_columns_list[1])
 
-                                    tf_line_transaction_receiver: str = (
-                                        tf_line_columns_list[2])
+                                    tf_line_transaction_receiver: (
+                                        str | None) = (
+                                        None if tf_line_columns_list[2]
+                                        == "None"
+                                        else tf_line_columns_list[2])
 
                                     tf_line_transaction_amount: int = int(
                                         tf_line_columns_list[3])
@@ -458,8 +488,9 @@ class Blockchain:
                                     tf_line_transaction_method: str = (
                                         tf_line_columns_list[4])
 
-                                    # Check if the transaction in the blockchain
-                                    # matches the transaction in the file
+                                    # Check if the transaction in the
+                                    # blockchain matches the transaction in
+                                    # the file
                                     if (
                                         bcf_timestamp
                                         == tf_line_transaction_time
@@ -476,18 +507,74 @@ class Blockchain:
                                         and bcf_transaction["method"]
                                         == tf_line_transaction_method
                                     ):
-                                        print("Transaction found.")
+                                        # print("Transaction found.")
+                                        pass
                                     else:
-                                        return_message = ("Transaction data in "
-                                                          "the transactions "
-                                                          "file does not match "
-                                                          "the blockchain.")
+                                        return_message = (
+                                            "Transaction data in the "
+                                            "transactions file does not match "
+                                            "the blockchain.\n"
+                                            f"Timestamp: {bcf_timestamp} "
+                                            f"(blockchain, type: "
+                                            f"{type(bcf_timestamp)})\n"
+                                            "Timestamp: "
+                                            f"{tf_line_transaction_time} "
+                                            f"(transactions file, type: "
+                                            f"{type(
+                                                tf_line_transaction_time)})\n"
+                                            "Sender: "
+                                            f"{bcf_transaction['sender']} "
+                                            f"(blockchain, type: "
+                                            f"{type(
+                                                bcf_transaction['sender'])})\n"
+                                            "Sender: "
+                                            f"{tf_line_transaction_sender} "
+                                            f"(transactions file, type: "
+                                            f"{type(
+                                                tf_line_transaction_sender)})\n"
+                                            "Receiver: "
+                                            f"{bcf_transaction['receiver']} "
+                                            f"(blockchain, type: "
+                                            f"{type(
+                                                bcf_transaction['receiver'])})\n"
+                                            "Receiver: "
+                                            f"{tf_line_transaction_receiver} "
+                                            f"(transactions file, type: "
+                                            f"{type(
+                                                tf_line_transaction_receiver
+                                            )})\n"
+                                            "Amount: "
+                                            f"{bcf_transaction['amount']} "
+                                            f"(blockchain, type: "
+                                            f"{type(
+                                                bcf_transaction['amount'])})\n"
+                                            "Amount: "
+                                            f"{tf_line_transaction_amount} "
+                                            f"(transactions file, type: "
+                                            f"{type(
+                                                tf_line_transaction_amount
+                                            )})\n"
+                                            "Method: "
+                                            f"{bcf_transaction['method']} "
+                                            f"(blockchain, type: "
+                                            f"{type(
+                                                bcf_transaction['method'])})\n"
+                                            "Method: "
+                                            f"{tf_line_transaction_method} "
+                                            f"(transactions file, type: "
+                                            f"{type(
+                                                tf_line_transaction_method)})")
                                         print(return_message)
                                         if repair and force:
                                             print("Contents of the "
                                                   "transactions file will be "
                                                   "replaced.")
                                             # print(f"position: {tf_position}")
+                                            repair_messages.append(
+                                                "Transaction data in the "
+                                                "transactions file did not "
+                                                "match the blockchain and has "
+                                                "been replaced.")
                                             tf.truncate(tf_position)
                                             mode = Mode.APPEND
                                         else:
@@ -506,13 +593,22 @@ class Blockchain:
             if (tf_line is not None) and (repair and force):
                 print("Extra data found in the transactions file. It will be "
                       "removed.")
+                print(f"A line containing extra data: {tf_line}")
+                repair_messages.append(
+                    "Extra data was found in the transactions file and has "
+                    "been removed.")
+
                 tf.truncate(tf_position)
             elif tf_line is not None:
                 return_message = "Extra data found in the transactions file."
                 print(return_message)
                 print(finished_early_message)
                 return (return_message, False)
-            return_message = "The transactions file is valid."
+            if repair_messages:
+                return_message = " ".join(repair_messages) + (
+                    " The transactions file is now valid.")
+            else:
+                return_message = "The transactions file is valid."
             print(return_message)
             return (return_message, True)
 
