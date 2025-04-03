@@ -76,7 +76,6 @@ def add_block() -> Tuple[Response, int]:
         message = f"Request data could not be retrieved: {e}"
         print(message)
         return jsonify({"message": message}), 400
-    print(f"Request: {request.get_json()}")
     if "data" not in request_data:
         message = "'data' key not found in request."
         print(message)
@@ -92,7 +91,6 @@ def add_block() -> Tuple[Response, int]:
         message = "Data must be a list of strings or dictionaries."
         print(message)
         return jsonify({"message": message}), 400
-    print(f"Data: {data}")
     # Ensure that no fields are missing in transactions
     should_send_400: bool = False
     if not isinstance(data, list):
@@ -117,7 +115,6 @@ def add_block() -> Tuple[Response, int]:
             break
         data = cast(dict[str, Dict[Any, Any]], data_unit)
         transaction = cast(dict[Any, Any], transaction)
-        print(f"Transaction: {transaction}")
         required_fields: list[str | tuple[str, str]] = [
             ("sender", "sender_unhashed"),
             ("receiver", "receiver_unhashed"),
@@ -125,7 +122,6 @@ def add_block() -> Tuple[Response, int]:
             "method"
         ]
         for field in required_fields:
-            print(f"Checking field: {field}")
             if isinstance(field, tuple):
                 if all(transaction.get(f, "") == "" for f in field):
                     message = f"{' or '.join(field)} is required."
