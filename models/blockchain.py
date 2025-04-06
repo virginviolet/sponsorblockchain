@@ -15,6 +15,7 @@ from typing import Generator, Tuple, Dict, List
 # Third party
 import lazyimports
 import pandas as pd
+from numpy import float64
 
 # Local
 with lazyimports.lazy_imports(".block:Block"):
@@ -275,26 +276,28 @@ class Blockchain:
         file_exists: bool = os.path.exists(self.transactions_path)
         if not file_exists:
             self.create_transactions_file()
-        balance: int = 0
+        balance: float64 = float64(0)
         transactions: pd.DataFrame = (
-            pd.read_csv(self.transactions_path, sep="\t", dtype={"Amount": str}))  # type: ignore
+            pd.read_csv(self.transactions_path,  # type: ignore
+                        sep="\t", dtype={"Amount": str}))
         transactions["Amount"] = (
             pd.to_numeric(  # type: ignore
                 transactions["Amount"], errors="coerce"
-                ).fillna(0)).astype(int)
+                ).fillna(0))
         if ((user in transactions["Sender"].values) or
                 (user in transactions["Receiver"].values)):
             sent: int = (transactions[(transactions["Sender"] == user) & (
                 # type: ignore
                 transactions["Method"] != "reaction")]["Amount"].sum())
             # print(f"Total amount sent by {user}: {sent}")
-            received: int = (
+            received: float64 = (
                 transactions[transactions["Receiver"]
                              == user]["Amount"].sum())  # type: ignore
             # print(f"Total amount received by {user}: {received}")
             balance = received - sent
             # print(f"Balance for {user}: {balance}")
-            return balance
+            balance_int = int(balance)
+            return balance_int
         else:
             print(f"No transactions found for {user}.")
             return None
