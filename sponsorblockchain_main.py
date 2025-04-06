@@ -3,12 +3,13 @@
 import os
 import json
 from sys import exit as sys_exit
-from typing import Tuple, Dict, List, Any, Callable, cast, TYPE_CHECKING
+from typing import Tuple, Dict, Any, Callable, TYPE_CHECKING
 
 # Third party
 import lazyimports
 from flask import Flask, request, jsonify, Response, send_file
 from dotenv import load_dotenv
+from pydantic import ValidationError
 
 # Local
 register_routes: Callable[[Flask], None] | None = None
@@ -17,14 +18,21 @@ if __name__ == "__main__" or __package__ == "":
     if TYPE_CHECKING:
         from models.block import Block
     with lazyimports.lazy_imports(
+            "sponsorblockchain_type_aliases:BlockData"):
+        from sponsorblockchain_type_aliases import BlockData
+    with lazyimports.lazy_imports(
             "models.blockchain:Blockchain"):
         from models.blockchain import Blockchain
 else:
     # Running as a package
     if TYPE_CHECKING:
         from sponsorblockchain.models.block import Block
+    with lazyimports.lazy_imports(
+            "sponsorblockchain.sponsorblockchain_type_aliases:BlockData"):
+        from sponsorblockchain.sponsorblockchain_type_aliases import BlockData
     sponsorblockcasino_extension_register_routes_import: str = (
-        "sponsorblockchain.extensions.sponsorblockcasino_extension:")
+        "sponsorblockchain.extensions.sponsorblockcasino_extension:"
+        "register_routes")
     with lazyimports.lazy_imports(
             "sponsorblockchain.models.blockchain:Blockchain",
             sponsorblockcasino_extension_register_routes_import):
@@ -46,6 +54,7 @@ else:
           "the blockchain is not running as a package.")
 
 blockchain: Blockchain = Blockchain()
+blockchain.migrate_blockchain()
 # The send_file method does not work for me
 # without resolving the paths (Flask bug?)
 blockchain_path_resolved: str = str(blockchain.blockchain_path.resolve())
@@ -69,7 +78,6 @@ def add_block() -> Tuple[Response, int]:
         message = "Invalid token."
         print(message)
         return jsonify({"message": message}), 400
-
     try:
         request_data: Any = request.get_json()
     except Exception as e:
@@ -86,92 +94,52 @@ def add_block() -> Tuple[Response, int]:
         print(message)
         return jsonify({"message": message}), 400
     # IMPROVE Make data a named tuple?
-    if not isinstance(data, list) and (
-            all(isinstance(item, (str, dict)) for item in data)):
-        message = "Data must be a list of strings or dictionaries."
+    # Validate the data
+    try:
+        data_parsed: BlockData = (
+            blockchain.parse_block_data(block_data=data))
+    except ValidationError as e:
+        message = f"Data validation error: {e}"
         print(message)
         return jsonify({"message": message}), 400
-    # Ensure that no fields are missing in transactions
-    should_send_400: bool = False
-    if not isinstance(data, list):
-        message = "Data must be a list."
-        should_send_400 = True
-    data = cast(List[Any], data)
-    if len(data) == 0:
-        message = "Data is empty."
-        should_send_400 = True
-    for data_unit in data:
-        data_unit: Any
-        if not isinstance(data_unit, dict):
-            continue
-        data_unit = cast(dict[Any, Any], data_unit)
-        if data_unit.get("transaction", "") == "":
-            continue
-        data_unit = cast(dict[str, Any], data_unit)
-        transaction: Any = data_unit.get("transaction")
-        if not isinstance(transaction, dict):
-            message = "Transaction must be a dictionary."
-            should_send_400 = True
-            break
-        data = cast(dict[str, Dict[Any, Any]], data_unit)
-        transaction = cast(dict[Any, Any], transaction)
-        required_fields: list[str | tuple[str, str]] = [
-            ("sender", "sender_unhashed"),
-            ("receiver", "receiver_unhashed"),
-            "amount",
-            "method"
-        ]
-        for field in required_fields:
-            if isinstance(field, tuple):
-                if all(transaction.get(f, "") == "" for f in field):
-                    message = f"{' or '.join(field)} is required."
-                    should_send_400 = True
-                    break
-            else:
-                if transaction.get(field, "") == "":
-                    message = f"{field} is required."
-                    should_send_400 = True
-                    break
-        if should_send_400:
-            break
-        if not isinstance(transaction.get("amount"), int):
-            try:
-                transaction["amount"] = int(transaction["amount"])
-            except ValueError:
-                message = "amount must be an integer."
-                should_send_400 = True
-                break
-        # Ensure no extra fields are present
-        allowed_fields: set[str] = {
-            "sender", "sender_unhashed", "receiver", "receiver_unhashed", "amount", "method"}
-        extra_fields: set[Any] = set(transaction.keys()) - allowed_fields
-        if extra_fields:
-            message = (f"Extra fields are not allowed: "
-                       f"{', '.join(extra_fields)}")
-            should_send_400 = True
-            break
-    if should_send_400:
-        if message is None:
-            raise ValueError("message is None.")
+    except Exception as e:
+        message = f"Data parsing error: {e}"
         print(message)
         return jsonify({"message": message}), 400
     try:
-        blockchain.add_block(data)
-        last_block: None | Block = blockchain.get_last_block()
-        if last_block and last_block.data != data:
-            message = "Block could not be added."
-            print(message)
-            return jsonify({"message": message}), 500
-        else:
-            message = "Block added successfully."
-            print(message)
-            return jsonify({"message": message,
-                            "block": last_block.__dict__}), 200
+        blockchain.add_block(data_parsed)
     except Exception as e:
-        message = f"An error occurred: {e}"
+        message = f"An error occurred while adding the block: {e}"
         print(message)
         return jsonify({"message": message}), 500
-
+    try:
+        last_block: None | Block = blockchain.get_last_block()
+    except Exception as e:
+        message = f"An error occurred while retrieving the last block: {e}"
+        print(message)
+        return jsonify({"message": message}), 500
+    if last_block is None:
+        message = "The last block is None."
+        print(message)
+        return jsonify({"message": message}), 500
+    last_block_data = last_block.data
+    try:
+        last_block_data_parsed: BlockData = (
+            blockchain.parse_block_data(block_data=last_block_data))
+    except ValidationError as e:
+        message = f"Last block data validation error: {e}"
+        print(message)
+        return jsonify({"message": message}), 500
+    
+    if last_block_data_parsed != data_parsed:
+        message = "The last block data does not match the provided data."
+        print(message)
+        return jsonify({"message": message}), 500
+    else:
+        message = "Block added successfully."
+        print(message)
+        return jsonify({"message": message,
+                        "block": last_block.__dict__}), 200
 
 @app.route("/get_chain", methods=["GET"])
 # API Route: Get the blockchain

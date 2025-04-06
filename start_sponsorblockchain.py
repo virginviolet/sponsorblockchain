@@ -21,6 +21,12 @@ else:
         from .sponsorblockchain_main import app
 # endregion
 
+# region Global variables
+
+
+waitress_process: subprocess.Popen[str] | None = None
+
+
 # region Waitress
 
 

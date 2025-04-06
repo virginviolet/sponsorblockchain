@@ -1,12 +1,16 @@
 # Standard Library
-from typing import TYPE_CHECKING
 
 # Third party
 import lazyimports
-if TYPE_CHECKING:
-    from .sponsorblockchain_type_aliases import TransactionDict, BlockDict
 
 # Local
+with lazyimports.lazy_imports(
+        ".sponsorblockchain_type_aliases:Transaction",
+        ".sponsorblockchain_type_aliases:BlockData",
+        ".sponsorblockchain_type_aliases:BlockDataSerialized",
+        ".sponsorblockchain_type_aliases:BlockDict"):
+    from .sponsorblockchain_type_aliases import (
+        Transaction, BlockData, BlockDataWithSerializedTransactions, BlockDict)
 with lazyimports.lazy_imports(
         ".sponsorblockchain_main:app",
         ".sponsorblockchain_main:blockchain",
@@ -25,6 +29,9 @@ __all__: list[str] = [
     "SERVER_TOKEN",
     "start_flask_app_waitress",
     "start_flask_app",
-    "TransactionDict",
+    "Transaction",
     "BlockDict",
+    "BlockData",
+    "BlockDataWithSerializedTransactions",
+    "Transaction"
 ]
