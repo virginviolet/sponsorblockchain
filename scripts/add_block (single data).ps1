@@ -36,7 +36,8 @@ try {
     )
     $question = "Pick server"
     $serverUrl = Get-InteractiveMenuChooseUserSelection -Question $question -Answers $answerItems
-    $body = @{"data" = $data } | ConvertTo-Json -Depth 3
+    $dataArray = @($data)
+    $body = @{"data" = $dataArray } | ConvertTo-Json -Depth 3
     Write-Host "Body: $body"
     Read-Host -Prompt "Press Enter to continue..."
     Invoke-RestMethod -Uri "$serverUrl/add_block" `
