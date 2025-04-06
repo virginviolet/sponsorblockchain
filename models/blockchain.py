@@ -277,7 +277,11 @@ class Blockchain:
             self.create_transactions_file()
         balance: int = 0
         transactions: pd.DataFrame = (
-            pd.read_csv(self.transactions_path, sep="\t"))  # type: ignore
+            pd.read_csv(self.transactions_path, sep="\t", dtype={"Amount": str}))  # type: ignore
+        transactions["Amount"] = (
+            pd.to_numeric(  # type: ignore
+                transactions["Amount"], errors="coerce"
+                ).fillna(0)).astype(int)
         if ((user in transactions["Sender"].values) or
                 (user in transactions["Receiver"].values)):
             sent: int = (transactions[(transactions["Sender"] == user) & (
