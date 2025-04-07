@@ -10,7 +10,7 @@ import hashlib
 import enum
 from pathlib import Path
 from io import TextIOWrapper
-from typing import Generator, Tuple, List, Dict, Literal, Any, cast, TYPE_CHECKING
+from typing import Generator, Tuple, List, Any, cast
 
 # Third party
 import lazyimports
@@ -24,60 +24,48 @@ try:
     # modules/blockchain.py <- modules/__init__.py <- sponsorblockchain_main.py
     with lazyimports.lazy_imports(
             "..sponsorblockchain_type_aliases:Transaction",
-            "..sponsorblockchain_type_aliases:TransactionOld",
+            "..sponsorblockchain_type_aliases:TransactionLegacy",
             "..sponsorblockchain_type_aliases:BlockData",
-            "..sponsorblockchain_type_aliases:BlockDataOld",
-            "..sponsorblockchain_type_aliases:BlockModel",
-            "..sponsorblockchain_type_aliases:BlockDict"):
+            "..sponsorblockchain_type_aliases:BlockDataLegacy",
+            "..sponsorblockchain_type_aliases:BlockModel"):
         from ..sponsorblockchain_type_aliases import (
-            BlockDict, BlockData, BlockModel, BlockDataOld, Transaction, TransactionOld)
-    with lazyimports.lazy_imports(
-            "..models.block:Block"):
+            BlockData, BlockModel, BlockDataLegacy, Transaction,
+            TransactionLegacy)
+    with lazyimports.lazy_imports("..models.block:Block"):
         from ..models.block import Block
-
 except ImportError:
     try:
         # Running the blockchain directly from a script
         # in the blockchain root directory
-        if TYPE_CHECKING:
-            from sponsorblockchain_type_aliases import (
-                BlockDataWithSerializedTransactions)
         with lazyimports.lazy_imports(
                 "sponsorblockchain_type_aliases:Transaction",
-                "sponsorblockchain_type_aliases:TransactionOld",
+                "sponsorblockchain_type_aliases:TransactionLegacy",
                 "sponsorblockchain_type_aliases:BlockData",
-                "sponsorblockchain_type_aliases:BlockDataOld",
-                "sponsorblockchain_type_aliases:BlockModel",
-                "sponsorblockchain_type_aliases:BlockDict"):
+                "sponsorblockchain_type_aliases:BlockDataLegacy",
+                "sponsorblockchain_type_aliases:BlockModel"):
             from sponsorblockchain_type_aliases import (
-                Transaction, TransactionOld, BlockData, BlockDataOld,
-                BlockModel, BlockDict)
-        with lazyimports.lazy_imports(
-                "models.block:Block"):
+                Transaction, TransactionLegacy, BlockData, BlockDataLegacy,
+                BlockModel)
+        with lazyimports.lazy_imports("models.block:Block"):
             from models.block import Block
     except ImportError:
         # Running the blockchain as a package
-        if TYPE_CHECKING:
-            from sponsorblockchain.sponsorblockchain_type_aliases import (
-                BlockDataWithSerializedTransactions)
         transaction_import: str = (
             "sponsorblockchain.sponsorblockchain_type_aliases:Transaction")
-        transaction_old_import: str = (
-            "sponsorblockchain.sponsorblockchain_type_aliases:TransactionOld")
+        transaction_legacy_import: str = (
+            "sponsorblockchain.sponsorblockchain_type_aliases:TransactionLegacy")
         block_data_transaction_dicts_import: str = (
             "sponsorblockchain.sponsorblockchain_type_aliases:"
-            "BlockDataOld")
+            "BlockDataLegacy")
         with lazyimports.lazy_imports(
                 transaction_import,
                 "sponsorblockchain.sponsorblockchain_type_aliases:BlockData",
                 "sponsorblockchain.sponsorblockchain_type_aliases:BlockModel",
                 block_data_transaction_dicts_import,
-                transaction_old_import,
-                "sponsorblockchain.sponsorblockchain_type_aliases:BlockDict"):
+                transaction_legacy_import):
             from sponsorblockchain.sponsorblockchain_type_aliases import (
-                Transaction, TransactionOld, BlockData, BlockModel, BlockDict)
-        with lazyimports.lazy_imports(
-                "sponsorblockchain.models.block:Block"):
+                Transaction, TransactionLegacy, BlockData, BlockModel)
+        with lazyimports.lazy_imports("sponsorblockchain.models.block:Block"):
             from sponsorblockchain.models.block import Block
 # endregion
 
@@ -101,8 +89,8 @@ class Blockchain:
         # genesis_block = Block(0, "Genesis Block", "0")
         genesis_block = Block(
             index=0,
-            data=["Jiraph complained about not being able to access nn block so I "
-                  "called Jiraph a scraper"],
+            data=["Jiraph complained about not being able to access nn block "
+                  "so I called Jiraph a scraper"],
             previous_block_hash="0"
         )
         self.write_block_to_file(genesis_block)
@@ -111,54 +99,27 @@ class Blockchain:
     # region Block ops
     def write_block_to_file(self, block: Block) -> None:
         # Serialize block data to JSON
-        print(f"Serializing block data: {block.data}")
-        block_data: BlockData | BlockDataOld = block.data
-        block_data_serialized: List[str | Dict[str, str]] = []
-        for item in block_data:
-            if isinstance(item, str):
-                block_data_serialized.append(item)
-                continue
-            if item.get("transaction", "") == "":
-                raise ValueError(
-                    "Block data contains "
-                    "a dictionary without a transaction key.")
-            transaction: Transaction | TransactionOld | None = (
-                item.get("transaction"))
-            if transaction is None:
-                raise ValueError(
-                    "Transaction data is None.")
-            elif not isinstance(transaction, Transaction):
-                raise ValueError(
-                    "Transaction data is not a Transaction instance.")
-            try:
-                transaction_serialized: str = (
-                    Transaction.model_dump_json(transaction))
-                block_data_serialized.append(
-                    {"transaction": transaction_serialized})
-            except ValidationError as e:
-                raise ValueError(
-                    f"Could not serialize transaction data: {e}")
-        # FIXME Use Pydantic
-        block_dict: BlockDict = {
-            "index": block.index,
-            "timestamp": block.timestamp,
-            "data": block_data_serialized,
-            "previous_block_hash": block.previous_block_hash,
-            "nonce": block.nonce,
-            "block_hash": block.block_hash
-        }
-        print(f"Serialized block data: {block_dict}")
-        # Open the file in append mode
-        print(f"Writing block to file...")
+        block_data: BlockData = cast(BlockData, block.data)
+        # Convert the block object to Pydantic model for serialization
+        block_model_instance = BlockModel(
+            index=block.index,
+            timestamp=block.timestamp,
+            data=block_data,
+            previous_block_hash=block.previous_block_hash,
+            nonce=block.nonce,
+            block_hash=block.block_hash
+        )
+        # Serialize the block model instance to JSON
+        block_serialized: str = block_model_instance.model_dump_json()
         with open(self.blockchain_path, "a") as file:
-            # Convert the block object to dictionary, serialize it to JSON,
-            # and write it to the file with a newline
-            file.write(json.dumps(block_dict) + "\n")
-        print(f"Block {block.index} written to file.")
+            # Write the serialized block data to the file with a newline
+            file.write(block_serialized + "\n")
+        # print(f"Block {block.index} written to file.")
+
 
     def add_block(
             self,
-            data: BlockData,
+            data: BlockData | BlockDataLegacy,
             difficulty: int = 0) -> None:
         latest_block: None | Block = self.get_last_block()
         new_block = Block(
@@ -169,15 +130,11 @@ class Blockchain:
         )
         if difficulty > 0:
             new_block.mine_block(difficulty)
-        print("Looking for transactions in the new block...")
-        print(f"New block data: {new_block.data}")
-        print(f"New block data type: {type(new_block.data)}")
         for item in new_block.data:
-            print(f"Item: {item}")
-            print(f"Item type: {type(item)}")
             if isinstance(item, dict) and "transaction" in item:
                 print("Transaction found.")
-                transaction: Transaction | TransactionOld = item["transaction"]
+                transaction: Transaction | TransactionLegacy = (
+                    item["transaction"])
                 if isinstance(transaction, Transaction):
                     if transaction.sender == "":
                         print("Transaction sender is empty.")
@@ -192,7 +149,6 @@ class Blockchain:
                     raise ValueError(
                         "Transaction data must be an instance of Transaction.")
                 # TODO Add hash for each transaction
-                print("Storing transaction...")
                 self.store_transaction(
                     new_block.timestamp,
                     transaction.sender,
@@ -202,71 +158,19 @@ class Blockchain:
                 )
         self.write_block_to_file(new_block)
 
-    def dict_to_block(self,
-                      block_dict: BlockDict,
-                      transaction_format: (
-                          Literal["class", "dict"]) = "class") -> Block:
-        block_data_raw: (
-            BlockData | BlockDataWithSerializedTransactions |
-            BlockDataOld) = block_dict["data"]
-        block_data: (BlockData | BlockDataWithSerializedTransactions |
-                     BlockDataOld)
-        if transaction_format == "dict":
-            block_data = cast(BlockDataOld, block_data_raw)
-        else:
-            block_data = cast(BlockData, block_data_raw)
-            # Deserialize block data
-            print(f"Deserializing block data: {block_dict['data']}")
-            try:
-                block_data = self.parse_block_data(
-                    block_data_raw)
-            except ValidationError as e:
-                raise ValueError(
-                    f"Could not deserialize block data: {e}")
-            except ValueError as e:
-                raise ValueError(
-                    f"Could not deserialize block data: {e}")
-            print(f"Deserialized block data: {block_data}")
-            # Create a new block object from the dictionary
-            print(f"Creating block from dictionary...")
-            # print(f"index: {block_dict['index']}")
-            # print(f"timestamp: {block_dict['timestamp']}")
-            # print(f"data: {block_data_deserialized}")
-            # print(f"previous_block_hash: {block_dict['previous_block_hash']}")
-            # print(f"nonce: {block_dict['nonce']}")
-            # print(f"block_hash: {block_dict['block_hash']}")
+    def load_block(self, json_block: str) -> Block:
+        # Deserialize JSON data using Pydantic
+        block_model: BlockModel = (
+            BlockModel.model_validate_json(json_block))
+        block_data: BlockData = block_model.data
         block = Block(
-            index=block_dict["index"],
-            timestamp=block_dict["timestamp"],
+            index=block_model.index,
+            timestamp=block_model.timestamp,
             data=block_data,
-            previous_block_hash=block_dict["previous_block_hash"],
-            nonce=block_dict["nonce"],
-            block_hash=block_dict["block_hash"]
+            previous_block_hash=block_model.previous_block_hash,
+            nonce=block_model.nonce,
+            block_hash=block_model.block_hash
         )
-        print(f"Created block: {block}")
-        return block
-
-    def load_block(self,
-                   json_block: str,
-                   transaction_format: Literal["class", "dict"] = "class") -> Block:
-        if transaction_format == "dict":
-            # Deserialize JSON data to a dictionary
-            # Create a new block object from the dictionary
-            block_dict: BlockDict = json.loads(json_block)
-            block: Block = (
-                self.dict_to_block(block_dict, transaction_format="dict"))
-        else:
-            # Deserialize JSON data using Pydantic
-            block_model: BlockModel = (
-                BlockModel.model_validate_json(json_block))
-            block = Block(
-                index=block_model.index,
-                timestamp=block_model.timestamp,
-                data=block_model.data,
-                previous_block_hash=block_model.previous_block_hash,
-                nonce=block_model.nonce,
-                block_hash=block_model.block_hash
-            )
         return block
 
     # endregion
@@ -279,8 +183,7 @@ class Blockchain:
             # Count the number of lines and return the count
             return sum(1 for _ in file)
 
-    def get_last_block(self,
-                       pydantic_deserialization: bool = False) -> None | Block:
+    def get_last_block(self) -> None | Block:
         if not os.path.exists(self.blockchain_path):
             return None
         # Get the last line of the file
@@ -297,18 +200,26 @@ class Blockchain:
                 # Move to the start of the file
                 # if for example no newline is found
                 file.seek(0)
-            last_line: str = file.readline().decode()
-
-        for block_key in [json.loads(last_line)]:
-            return Block(
-                index=block_key["index"],
-                timestamp=block_key["timestamp"],
-                data=block_key["data"],
-                previous_block_hash=block_key["previous_block_hash"],
-                nonce=block_key["nonce"],
-                block_hash=block_key["block_hash"]
-            )
-        # last_line_deserialized =
+            # Last non-empty line
+            last_line: str = file.readline().strip().decode()
+            try:
+                last_block_modelled: BlockModel = (
+                    BlockModel.model_validate_json(last_line))
+            except ValidationError as e:
+                print(f"Error loading block: {e}")
+                return None
+        # Convert to block
+        block_data: BlockData = last_block_modelled.data
+        block_data_parsed: BlockData = self.parse_block_data(block_data)
+        block = Block(
+            index=last_block_modelled.index,
+            timestamp=last_block_modelled.timestamp,
+            data=block_data_parsed,
+            previous_block_hash=last_block_modelled.previous_block_hash,
+            nonce=last_block_modelled.nonce,
+            block_hash=last_block_modelled.block_hash
+        )
+        return block
 
     def parse_block_data(self, block_data: Any) -> BlockData:
         """
@@ -369,6 +280,7 @@ class Blockchain:
             transaction: Any = item.get("transaction")
             if isinstance(transaction, str):
                 # Transaction serialized as a string with Pydantic
+                print("Found transaction as a string.")
                 item = cast(dict[str, str], item)
                 try:
                     # Deserialize with Pydantic
@@ -382,6 +294,7 @@ class Blockchain:
             elif isinstance(transaction, dict):
                 # Transaction stored as a dictionary
                 # (before Pydantic was added)
+                print("Found transaction as a dictionary.")
                 transaction = cast(dict[str, Any], transaction)
                 try:
                     transaction_parsed: Transaction = (
@@ -407,71 +320,6 @@ class Blockchain:
             raise ValueError(
                 "Data must be a list of strings and/or dictionaries.")
         return data_parsed
-    # endregion
-
-    # region Migrate chain
-    def migrate_blockchain(self) -> None:
-        # Check if the blockchain file exists
-        if not os.path.exists(self.blockchain_path):
-            print("Blockchain file does not exist.")
-            return
-        # Check if the blockchain file is empty
-        if os.stat(self.blockchain_path).st_size == 0:
-            print("Blockchain file is empty.")
-            return
-        # Create a new blockchain file
-        new_blockchain = Blockchain(blockchain_path="data/new_blockchain.json")
-        print("Creating new blockchain file at "
-              f"{new_blockchain.blockchain_path}")
-        with open(new_blockchain.blockchain_path, "w") as new_file:
-            # Open the old blockchain file
-            current_block: None | Block = None
-            previous_block: None | Block = None
-            with open(self.blockchain_path, "r") as old_file:
-                for line in old_file:
-                    # Load the line as a block
-                    try:
-                        current_block = self.load_block(
-                            line, transaction_format="dict")
-                    except json.JSONDecodeError:
-                        print("Invalid JSON in the blockchain file.")
-                        continue
-                    # Write the block to the new file
-                    loaded_block_model = BlockModel(
-                        index=current_block.index,
-                        timestamp=current_block.timestamp,
-                        data=current_block.data,
-                        previous_block_hash=current_block.previous_block_hash,
-                        nonce=current_block.nonce,
-                        block_hash=current_block.block_hash
-                    )
-                    block_data_parsed: BlockData = self.parse_block_data(
-                        loaded_block_model.data)
-                    previous_block_hash: str
-                    if not previous_block:
-                        previous_block_hash = loaded_block_model.block_hash
-                    else:
-                        previous_block_hash = previous_block.block_hash
-                    new_block = Block(
-                        index=loaded_block_model.index,
-                        timestamp=loaded_block_model.timestamp,
-                        data=block_data_parsed,
-                        previous_block_hash=previous_block_hash
-                    )
-                    new_block_model = BlockModel(
-                        index=new_block.index,
-                        timestamp=new_block.timestamp,
-                        data=new_block.data,
-                        previous_block_hash=new_block.previous_block_hash,
-                        nonce=new_block.nonce,
-                        block_hash=new_block.block_hash
-                    )
-                    block_json: str = new_block_model.model_dump_json()
-                    print(f"New block data: {new_block.data}")
-                    print(f"block_json: {block_json}")
-                    # input("Press Enter to continue...")
-                    new_file.write(block_json + "\n")
-                    previous_block = new_block
     # endregion
 
     # region Chain valid
@@ -500,7 +348,7 @@ class Blockchain:
                     if current_block.block_hash != calculated_hash:
                         print("\nCurrent block's \"block hash\": "
                               f"{current_block.block_hash}")
-                        current_block_data: BlockData | BlockDataOld = (
+                        current_block_data: BlockData | BlockDataLegacy = (
                             current_block.data)
                         print(
                             f"Current block's \"data\": {current_block_data}")
@@ -729,10 +577,10 @@ class Blockchain:
                     print(return_message)
                     print(finished_early_message)
                     return (return_message, False)
-                data_list: BlockData | BlockDataOld = block.data
+                data_list: BlockData | BlockDataLegacy = block.data
                 for item in data_list:
                     if isinstance(item, dict) and "transaction" in item:
-                        bcf_transaction: Transaction | TransactionOld = (
+                        bcf_transaction: Transaction | TransactionLegacy = (
                             item["transaction"])
                         bcf_timestamp: float = block.timestamp
                         bcf_transaction_sender: str

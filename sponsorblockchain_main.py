@@ -18,25 +18,38 @@ if __name__ == "__main__" or __package__ == "":
     if TYPE_CHECKING:
         from models.block import Block
     with lazyimports.lazy_imports(
-            "sponsorblockchain_type_aliases:BlockData"):
-        from sponsorblockchain_type_aliases import BlockData
+            "sponsorblockchain_type_aliases:BlockData",
+            "sponsorblockchain_type_aliases:BlockDataLegacy",
+            "sponsorblockchain_type_aliases:BlockModel",):
+        from sponsorblockchain_type_aliases import (BlockData, BlockDataLegacy, BlockModel)
     with lazyimports.lazy_imports(
             "models.blockchain:Blockchain"):
         from models.blockchain import Blockchain
+    with lazyimports.lazy_imports(
+            "utils.migrate_blockchain:migrate_blockchain"):
+        from utils.migrate_blockchain import migrate_blockchain
 else:
     # Running as a package
     if TYPE_CHECKING:
         from sponsorblockchain.models.block import Block
     with lazyimports.lazy_imports(
-            "sponsorblockchain.sponsorblockchain_type_aliases:BlockData"):
-        from sponsorblockchain.sponsorblockchain_type_aliases import BlockData
+            "sponsorblockchain.sponsorblockchain_type_aliases:BlockData",
+            "sponsorblockchain.sponsorblockchain_type_aliases:BlockDataLegacy",
+            "sponsorblockchain.sponsorblockchain_type_aliases:BlockModel"):
+        from sponsorblockchain.sponsorblockchain_type_aliases import (
+            BlockData, BlockDataLegacy, BlockModel)
+    with lazyimports.lazy_imports(
+            "sponsorblockchain.models.blockchain:Blockchain"):
+        from sponsorblockchain.models.blockchain import Blockchain
     sponsorblockcasino_extension_register_routes_import: str = (
         "sponsorblockchain.extensions.sponsorblockcasino_extension:"
         "register_routes")
     with lazyimports.lazy_imports(
-            "sponsorblockchain.models.blockchain:Blockchain",
+            "sponsorblockchain.utils.migrate_blockchain:migrate_blockchain"):
+        from sponsorblockchain.utils.migrate_blockchain import (
+            migrate_blockchain)
+    with lazyimports.lazy_imports(
             sponsorblockcasino_extension_register_routes_import):
-        from sponsorblockchain.models.blockchain import Blockchain
         from sponsorblockchain.extensions.sponsorblockcasino_extension import (
             register_routes)
 # endregion
@@ -54,7 +67,7 @@ else:
           "the blockchain is not running as a package.")
 
 blockchain: Blockchain = Blockchain()
-blockchain.migrate_blockchain()
+blockchain = migrate_blockchain(blockchain)
 # The send_file method does not work for me
 # without resolving the paths (Flask bug?)
 blockchain_path_resolved: str = str(blockchain.blockchain_path.resolve())
@@ -122,7 +135,7 @@ def add_block() -> Tuple[Response, int]:
         message = "The last block is None."
         print(message)
         return jsonify({"message": message}), 500
-    last_block_data = last_block.data
+    last_block_data: BlockData | BlockDataLegacy = last_block.data
     try:
         last_block_data_parsed: BlockData = (
             blockchain.parse_block_data(block_data=last_block_data))
@@ -130,7 +143,21 @@ def add_block() -> Tuple[Response, int]:
         message = f"Last block data validation error: {e}"
         print(message)
         return jsonify({"message": message}), 500
-    
+    last_block_json: str
+    try:
+        last_block_modelled = BlockModel(
+            index=last_block.index,
+            timestamp=last_block.timestamp,
+            data=last_block_data_parsed,
+            previous_block_hash=last_block.previous_block_hash,
+            nonce=last_block.nonce,
+            block_hash=last_block.block_hash
+        )
+        last_block_json = last_block_modelled.model_dump_json()
+    except ValidationError as e:
+        message = f"Last block model validation error: {e}"
+        print(message)
+        return jsonify({"message": message}), 500
     if last_block_data_parsed != data_parsed:
         message = "The last block data does not match the provided data."
         print(message)
@@ -139,7 +166,7 @@ def add_block() -> Tuple[Response, int]:
         message = "Block added successfully."
         print(message)
         return jsonify({"message": message,
-                        "block": last_block.__dict__}), 200
+                        "block": last_block_json}), 200
 
 @app.route("/get_chain", methods=["GET"])
 # API Route: Get the blockchain
@@ -303,5 +330,5 @@ def get_balance() -> Tuple[Response, int]:
 # region Run Flask app
 if __name__ == "__main__":
     load_dotenv()
-    app.run(port=8080, debug=True)
+    app.run(port=8080, debug=True, use_reloader=False)
 # endregion

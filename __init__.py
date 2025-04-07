@@ -6,11 +6,14 @@ import lazyimports
 # Local
 with lazyimports.lazy_imports(
         ".sponsorblockchain_type_aliases:Transaction",
+        ".sponsorblockchain_type_aliases:TransactionLegacy",
         ".sponsorblockchain_type_aliases:BlockData",
-        ".sponsorblockchain_type_aliases:BlockDataSerialized",
+        ".sponsorblockchain_type_aliases:BlockDataLegacy",
+        ".sponsorblockchain_type_aliases:BlockModel",
         ".sponsorblockchain_type_aliases:BlockDict"):
     from .sponsorblockchain_type_aliases import (
-        Transaction, BlockData, BlockDataWithSerializedTransactions, BlockDict)
+        Transaction, TransactionLegacy, BlockData, BlockModel, BlockDataLegacy,
+        BlockDict)
 with lazyimports.lazy_imports(
         ".sponsorblockchain_main:app",
         ".sponsorblockchain_main:blockchain",
@@ -30,8 +33,9 @@ __all__: list[str] = [
     "start_flask_app_waitress",
     "start_flask_app",
     "Transaction",
+    "TransactionLegacy",
     "BlockDict",
     "BlockData",
-    "BlockDataWithSerializedTransactions",
-    "Transaction"
+    "BlockModel",
+    "BlockDataLegacy"
 ]

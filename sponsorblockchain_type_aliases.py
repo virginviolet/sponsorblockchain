@@ -10,6 +10,10 @@ from pydantic import BaseModel
 # region Data classes
 
 class Transaction(BaseModel):
+    """
+    Pydantic model for a transaction in the blockchain, used for deserializing
+    transactions in block data.
+    """
     sender: str
     receiver: str
     amount: int
@@ -18,21 +22,30 @@ class Transaction(BaseModel):
     class Config:
         extra: str = "forbid"
 
-class TransactionOld(TypedDict):
+
+class TransactionLegacy(TypedDict):
+    """
+    Deprecated and replaced by Transaction.
+    Used in BlockDataLegacy.
+    """
     sender: str
     receiver: str
     amount: int
     method: str
 
+
 BlockData = List[str | Dict[str, Transaction]]
-BlockDataWithSerializedTransactions = List[str | Dict[str, str]]
-BlockDataOld = List[str | Dict[str, TransactionOld]]
+BlockDataLegacy = List[str | Dict[str, TransactionLegacy]]
 
 
 class BlockModel(BaseModel):
+    """
+    Pydantic model for a block in the blockchain, used for serializing and
+    deserializing blocks.
+    """
     index: int
     timestamp: float
-    data: BlockData | BlockDataOld
+    data: BlockData
     previous_block_hash: str
     nonce: int
     block_hash: str
@@ -40,10 +53,15 @@ class BlockModel(BaseModel):
     class Config:
         extra: str = "forbid"
 
+
 class BlockDict(TypedDict):
+    """
+    Deprecated and replaced by BlockModel. Formerly used for
+    deserializing blocks from json. It would then be converted to a Block.
+    """
     index: int
     timestamp: float
-    data: BlockData | BlockDataWithSerializedTransactions | BlockDataOld
+    data: BlockData | BlockDataLegacy
     previous_block_hash: str
     nonce: int
     block_hash: str

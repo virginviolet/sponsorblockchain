@@ -11,19 +11,26 @@ try:
     # For some reason, this doesn't work when block.py is imported like
     # modules/block.py <- modules/__init__.py <- modules/blockchain.py <- sponsorblockchain_main.py
     with lazyimports.lazy_imports(
-            "..sponsorblockchain_type_aliases:BlockData"):
-        from ..sponsorblockchain_type_aliases import BlockData
+            "..sponsorblockchain_type_aliases:BlockData",
+            "..sponsorblockchain_type_aliases:BlockDataLegacy"):
+        from ..sponsorblockchain_type_aliases import BlockData, BlockDataLegacy
 except ImportError:
     try:
         # Running the blockchain directly from a script
         # in the blockchain root directory
         with lazyimports.lazy_imports(
-                "sponsorblockchain_type_aliases:BlockData"):
-            from sponsorblockchain_type_aliases import BlockData
+                "sponsorblockchain_type_aliases:BlockData",
+                "sponsorblockchain_type_aliases:BlockDataLegacy"):
+            from sponsorblockchain_type_aliases import (BlockData,
+                                                        BlockDataLegacy)
     except ImportError:
         # Running the blockchain as a package
+        block_data_legacy_import = (
+            "sponsorblockchain.sponsorblockchain_type_aliases:"
+            "BlockDataLegacy")
         with lazyimports.lazy_imports(
-                "sponsorblockchain.sponsorblockchain_type_aliases:BlockData"):
+                "sponsorblockchain.sponsorblockchain_type_aliases:BlockData",
+                block_data_legacy_import):
             from sponsorblockchain.sponsorblockchain_type_aliases import (
                 BlockData)
 # endregion
@@ -34,14 +41,14 @@ except ImportError:
 class Block:
     def __init__(self,
                  index: int,
-                 data: BlockData,
+                 data: "BlockData | BlockDataLegacy",
                  previous_block_hash: str,
                  timestamp: float = 0.0,
                  nonce: int = 0,
                  block_hash: str | None = None) -> None:
         self.index: int = index
         self.timestamp: float = timestamp if timestamp else time.time()
-        self.data: BlockData = data
+        self.data: "BlockData | BlockDataLegacy" = data
         self.previous_block_hash: str = previous_block_hash
         self.nonce: int = nonce
         self.block_hash: str = (
