@@ -136,6 +136,12 @@ class Blockchain:
                 elif transaction.amount == 0:
                     print("Transaction amount is 0.")
                     return
+                elif transaction.amount > 2147483647:
+                    print("Transaction amount is too large.")
+                    return
+                elif transaction.amount < -2147483648:
+                    print("Transaction amount is too small.")
+                    return
                 # TODO Add hash for each transaction
                 self.store_transaction(
                     new_block.timestamp,
