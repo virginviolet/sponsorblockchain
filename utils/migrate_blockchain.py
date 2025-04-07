@@ -7,6 +7,7 @@
 import os
 import json
 from pathlib import Path
+from typing import TypedDict, Dict, List
 
 # Third party
 import lazyimports
@@ -17,11 +18,8 @@ try:
     # modules/blockchain.py <- modules/__init__.py <- sponsorblockchain_main.py
     with lazyimports.lazy_imports(
             "..sponsorblockchain_type_aliases:BlockData",
-            "..sponsorblockchain_type_aliases:BlockDataLegacy",
-            "..sponsorblockchain_type_aliases:BlockModel",
-            "..sponsorblockchain_type_aliases:BlockDict"):
-        from ..sponsorblockchain_type_aliases import (BlockData, BlockModel,
-            BlockDataLegacy, BlockDict)
+            "..sponsorblockchain_type_aliases:BlockModel"):
+        from ..sponsorblockchain_type_aliases import (BlockData, BlockModel)
     with lazyimports.lazy_imports(
             "..models.block:Block"):
         from ..models.block import Block
@@ -34,29 +32,19 @@ except ImportError:
         # in the blockchain root directory
         with lazyimports.lazy_imports(
                 "sponsorblockchain_type_aliases:BlockData",
-                "sponsorblockchain_type_aliases:BlockDataLegacy",
-                "sponsorblockchain_type_aliases:BlockModel",
-                "sponsorblockchain_type_aliases:BlockDict"):
-            from sponsorblockchain_type_aliases import (
-                BlockData, BlockModel,
-                BlockDataLegacy, BlockDict)
+                "sponsorblockchain_type_aliases:BlockModel"):
+            from sponsorblockchain_type_aliases import BlockData, BlockModel
         with lazyimports.lazy_imports("models.block:Block"):
             from models.block import Block
         with lazyimports.lazy_imports("models.blockchain:Blockchain"):
             from models.blockchain import Blockchain
     except ImportError:
         # Running the blockchain as a package
-        block_data_legacy_import: str = (
-            "sponsorblockchain.sponsorblockchain_type_aliases:"
-            "BlockDataLegacy")
         with lazyimports.lazy_imports(
                 "sponsorblockchain.sponsorblockchain_type_aliases:BlockData",
-                block_data_legacy_import,
-                "sponsorblockchain.sponsorblockchain_type_aliases:BlockModel",
-                "sponsorblockchain.sponsorblockchain_type_aliases:BlockDict"):
+                "sponsorblockchain.sponsorblockchain_type_aliases:BlockModel"):
             from sponsorblockchain.sponsorblockchain_type_aliases import (
-                BlockData, BlockModel,
-                BlockDataLegacy, BlockDict)
+                BlockData, BlockModel)
         with lazyimports.lazy_imports(
                 "sponsorblockchain.models.block:Block"):
             from sponsorblockchain.models.block import Block
@@ -65,7 +53,37 @@ except ImportError:
             from sponsorblockchain.models.blockchain import Blockchain
 # endregion
 
+# region Type aliases
+
+
+class TransactionLegacy(TypedDict):
+    """
+    Deprecated and replaced by Transaction.
+    Used in BlockDataLegacy.
+    """
+    sender: str
+    receiver: str
+    amount: int
+    method: str
+
+BlockDataLegacy = List[str | Dict[str, TransactionLegacy]]
+
+class BlockDict(TypedDict):
+    """
+    Deprecated and replaced by BlockModel. Formerly used for
+    deserializing blocks from json. It would then be converted to a Block.
+    """
+    index: int
+    timestamp: float
+    data: BlockData | BlockDataLegacy
+    previous_block_hash: str
+    nonce: int
+    block_hash: str
+# endregion
+
 # region Legacy load block
+
+
 def dict_to_block(block_dict: BlockDict) -> Block:
     block_data: BlockData | BlockDataLegacy = block_dict["data"]
     block = Block(
@@ -79,6 +97,7 @@ def dict_to_block(block_dict: BlockDict) -> Block:
     print(f"Created block: {block}")
     return block
 
+
 def legacy_load_block(json_block: str) -> Block:
     # Deserialize JSON data to a dictionary
     # Create a new block object from the dictionary
@@ -88,6 +107,8 @@ def legacy_load_block(json_block: str) -> Block:
 # endregion
 
 # region Migrate chain
+
+
 def migrate_blockchain(blockchain: Blockchain) -> Blockchain:
     """
     Migrates the blockchain. All the hashes changed when Pydantic models were
@@ -105,13 +126,13 @@ def migrate_blockchain(blockchain: Blockchain) -> Blockchain:
     if os.stat(blockchain.blockchain_path).st_size == 0:
         raise ValueError(
             "Old blockchain file is empty. Cannot migrate.")
-    
+
     # copy the old blockchain file to _blockchain_old.json
     old_blockchain_path: Path = blockchain.blockchain_path
     old_blockchain_backup_path: Path = old_blockchain_path.with_name(
         old_blockchain_path.stem + "_old" + old_blockchain_path.suffix)
     print(f"Backing up old blockchain file to "
-            f"'{old_blockchain_backup_path}'")
+          f"'{old_blockchain_backup_path}'")
     os.rename(blockchain.blockchain_path, old_blockchain_backup_path)
     blockchain.blockchain_path = old_blockchain_backup_path
     new_blockchain = Blockchain(
@@ -120,7 +141,7 @@ def migrate_blockchain(blockchain: Blockchain) -> Blockchain:
     )
     # Create a new blockchain file
     print("A new blockchain file will be created at "
-            f"'{new_blockchain.blockchain_path}'.")
+          f"'{new_blockchain.blockchain_path}'.")
     with open(new_blockchain.blockchain_path, "w") as new_file:
         # Open the old blockchain file
         current_block: None | Block = None

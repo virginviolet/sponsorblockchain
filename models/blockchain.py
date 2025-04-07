@@ -24,13 +24,10 @@ try:
     # modules/blockchain.py <- modules/__init__.py <- sponsorblockchain_main.py
     with lazyimports.lazy_imports(
             "..sponsorblockchain_type_aliases:Transaction",
-            "..sponsorblockchain_type_aliases:TransactionLegacy",
             "..sponsorblockchain_type_aliases:BlockData",
-            "..sponsorblockchain_type_aliases:BlockDataLegacy",
             "..sponsorblockchain_type_aliases:BlockModel"):
         from ..sponsorblockchain_type_aliases import (
-            BlockData, BlockModel, BlockDataLegacy, Transaction,
-            TransactionLegacy)
+            BlockData, BlockModel, Transaction)
     with lazyimports.lazy_imports("..models.block:Block"):
         from ..models.block import Block
 except ImportError:
@@ -39,12 +36,10 @@ except ImportError:
         # in the blockchain root directory
         with lazyimports.lazy_imports(
                 "sponsorblockchain_type_aliases:Transaction",
-                "sponsorblockchain_type_aliases:TransactionLegacy",
                 "sponsorblockchain_type_aliases:BlockData",
-                "sponsorblockchain_type_aliases:BlockDataLegacy",
                 "sponsorblockchain_type_aliases:BlockModel"):
             from sponsorblockchain_type_aliases import (
-                Transaction, TransactionLegacy, BlockData, BlockDataLegacy,
+                Transaction, BlockData,
                 BlockModel)
         with lazyimports.lazy_imports("models.block:Block"):
             from models.block import Block
@@ -52,8 +47,6 @@ except ImportError:
         # Running the blockchain as a package
         transaction_import: str = (
             "sponsorblockchain.sponsorblockchain_type_aliases:Transaction")
-        transaction_legacy_import: str = (
-            "sponsorblockchain.sponsorblockchain_type_aliases:TransactionLegacy")
         block_data_transaction_dicts_import: str = (
             "sponsorblockchain.sponsorblockchain_type_aliases:"
             "BlockDataLegacy")
@@ -61,10 +54,9 @@ except ImportError:
                 transaction_import,
                 "sponsorblockchain.sponsorblockchain_type_aliases:BlockData",
                 "sponsorblockchain.sponsorblockchain_type_aliases:BlockModel",
-                block_data_transaction_dicts_import,
-                transaction_legacy_import):
+                block_data_transaction_dicts_import):
             from sponsorblockchain.sponsorblockchain_type_aliases import (
-                Transaction, TransactionLegacy, BlockData, BlockModel)
+                Transaction, BlockData, BlockModel)
         with lazyimports.lazy_imports("sponsorblockchain.models.block:Block"):
             from sponsorblockchain.models.block import Block
 # endregion
@@ -99,7 +91,7 @@ class Blockchain:
     # region Block ops
     def write_block_to_file(self, block: Block) -> None:
         # Serialize block data to JSON
-        block_data: BlockData = cast(BlockData, block.data)
+        block_data: BlockData = block.data
         # Convert the block object to Pydantic model for serialization
         block_model_instance = BlockModel(
             index=block.index,
@@ -119,7 +111,7 @@ class Blockchain:
 
     def add_block(
             self,
-            data: BlockData | BlockDataLegacy,
+            data: BlockData,
             difficulty: int = 0) -> None:
         latest_block: None | Block = self.get_last_block()
         new_block = Block(
@@ -133,21 +125,17 @@ class Blockchain:
         for item in new_block.data:
             if isinstance(item, dict) and "transaction" in item:
                 print("Transaction found.")
-                transaction: Transaction | TransactionLegacy = (
+                transaction: Transaction = (
                     item["transaction"])
-                if isinstance(transaction, Transaction):
-                    if transaction.sender == "":
-                        print("Transaction sender is empty.")
-                        return
-                    elif transaction.receiver == "":
-                        print("Transaction receiver is empty.")
-                        return
-                    elif transaction.amount == 0:
-                        print("Transaction amount is 0.")
-                        return
-                else:
-                    raise ValueError(
-                        "Transaction data must be an instance of Transaction.")
+                if transaction.sender == "":
+                    print("Transaction sender is empty.")
+                    return
+                elif transaction.receiver == "":
+                    print("Transaction receiver is empty.")
+                    return
+                elif transaction.amount == 0:
+                    print("Transaction amount is 0.")
+                    return
                 # TODO Add hash for each transaction
                 self.store_transaction(
                     new_block.timestamp,
@@ -348,7 +336,7 @@ class Blockchain:
                     if current_block.block_hash != calculated_hash:
                         print("\nCurrent block's \"block hash\": "
                               f"{current_block.block_hash}")
-                        current_block_data: BlockData | BlockDataLegacy = (
+                        current_block_data: BlockData = (
                             current_block.data)
                         print(
                             f"Current block's \"data\": {current_block_data}")
@@ -577,34 +565,24 @@ class Blockchain:
                     print(return_message)
                     print(finished_early_message)
                     return (return_message, False)
-                data_list: BlockData | BlockDataLegacy = block.data
+                data_list: BlockData = block.data
                 for item in data_list:
                     if isinstance(item, dict) and "transaction" in item:
-                        bcf_transaction: Transaction | TransactionLegacy = (
+                        bcf_transaction: Transaction = (
                             item["transaction"])
                         bcf_timestamp: float = block.timestamp
                         bcf_transaction_sender: str
                         bcf_transaction_receiver: str
                         bcf_transaction_amount: int
                         bcf_transaction_method: str
-                        if isinstance(bcf_transaction, Transaction):
-                            bcf_transaction_sender = (
-                                bcf_transaction.sender)
-                            bcf_transaction_receiver = (
-                                bcf_transaction.receiver)
-                            bcf_transaction_amount = (
-                                bcf_transaction.amount)
-                            bcf_transaction_method = (
-                                bcf_transaction.method)
-                        else:
-                            bcf_transaction_sender = (
-                                bcf_transaction["sender"])
-                            bcf_transaction_receiver = (
-                                bcf_transaction["receiver"])
-                            bcf_transaction_amount = (
-                                bcf_transaction["amount"])
-                            bcf_transaction_method = (
-                                bcf_transaction["method"])
+                        bcf_transaction_sender = (
+                            bcf_transaction.sender)
+                        bcf_transaction_receiver = (
+                            bcf_transaction.receiver)
+                        bcf_transaction_amount = (
+                            bcf_transaction.amount)
+                        bcf_transaction_method = (
+                            bcf_transaction.method)
                         if mode == Mode.VALIDATE:
                             if tf_line is None:
                                 print("Expected data in the transactions file "

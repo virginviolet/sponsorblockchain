@@ -23,19 +23,7 @@ class Transaction(BaseModel):
         extra: str = "forbid"
 
 
-class TransactionLegacy(TypedDict):
-    """
-    Deprecated and replaced by Transaction.
-    Used in BlockDataLegacy.
-    """
-    sender: str
-    receiver: str
-    amount: int
-    method: str
-
-
 BlockData = List[str | Dict[str, Transaction]]
-BlockDataLegacy = List[str | Dict[str, TransactionLegacy]]
 
 
 class BlockModel(BaseModel):
@@ -52,17 +40,4 @@ class BlockModel(BaseModel):
 
     class Config:
         extra: str = "forbid"
-
-
-class BlockDict(TypedDict):
-    """
-    Deprecated and replaced by BlockModel. Formerly used for
-    deserializing blocks from json. It would then be converted to a Block.
-    """
-    index: int
-    timestamp: float
-    data: BlockData | BlockDataLegacy
-    previous_block_hash: str
-    nonce: int
-    block_hash: str
 # endregion
