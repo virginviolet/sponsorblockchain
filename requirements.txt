@@ -2,4 +2,5 @@ flask
 waitress
 python-dotenv
 auto-lazy-imports
+pydantic
 pandas
