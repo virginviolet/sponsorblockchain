@@ -59,6 +59,7 @@ else:
           "the blockchain is not running as a package.")
 
 blockchain: Blockchain = Blockchain()
+# blockchain = migrate_blockchain(blockchain)
 # The send_file method does not work for me
 # without resolving the paths (Flask bug?)
 blockchain_path_resolved: str = str(blockchain.blockchain_path.resolve())
@@ -159,6 +160,7 @@ def add_block() -> Tuple[Response, int]:
         return jsonify({"message": message,
                         "block": last_block_json}), 200
 
+
 @app.route("/get_chain", methods=["GET"])
 # API Route: Get the blockchain
 def get_chain() -> Tuple[Response, int]:
@@ -170,6 +172,41 @@ def get_chain() -> Tuple[Response, int]:
         print("Blockchain retrieved.")
         print("Blockchain will be returned.")
         return jsonify({"length": len(chain_data), "chain": chain_data}), 200
+
+
+@app.route("/upload_chain", methods=["POST"])
+# API Route: Upload a blockchain file
+def upload_chain() -> Tuple[Response, int]:
+    print("Received request to upload a blockchain file.")
+    message: str | None = None
+    token: str | None = request.headers.get("token")
+    if not token:
+        message = "Token is required."
+        print(message)
+        return jsonify({"message": message}), 400
+    if token != SERVER_TOKEN:
+        message = "Invalid token."
+        print(message)
+        return jsonify({"message": message}), 400
+    try:
+        file_content: bytes = request.data
+    except Exception as e:
+        message = f"File content could not be retrieved: {e}"
+        print(message)
+        return jsonify({"message": message}), 400
+    if not file_content:
+        message = "File is empty."
+        print(message)
+        return jsonify({"message": message}), 400
+    try:
+        with open(blockchain_path_resolved, "wb") as file:
+            file.write(file_content)
+        print("File written to disk.")
+    except Exception as e:
+        message = f"An error occurred while writing the file: {e}"
+        print(message)
+        return jsonify({"message": message}), 500
+    return jsonify({"message": "Blockchain file uploaded successfully."}), 200
 
 
 @app.route("/download_chain", methods=["GET"])
