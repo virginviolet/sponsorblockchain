@@ -33,13 +33,19 @@ try {
     )
     $question = "Pick server"
     $serverUrl = Get-InteractiveMenuChooseUserSelection -Question $question -Answers $answerItems
-    Invoke-RestMethod -Uri "$serverUrl/download_checkpoints" `
-        -Method 'Get' `
-        -Headers @{'token' = $Env:SERVER_TOKEN } `
-        -OutFile "checkpoints_downloaded.zip"
-    Write-Host "Checkpoints downloaded successfully."
+    Write-Warning "This script will replace the blockchain on the server."
+    Read-Host -Prompt "Press Enter to continue..."
+    $scriptDirPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+    $blockchainPackageDirPath = Split-Path -Parent $scriptDirPath
+    $botDirPath = Split-Path -Parent $blockchainPackageDirPath
+    $botConfigPath = "$botDirPath\data\blockchain_production.json"
+    Invoke-RestMethod -Uri "$serverUrl/upload_chain" `
+        -Method 'Post' `
+        -Headers @{'token' = $Env:SERVER_TOKEN; "Content-Type" = "application/json" } `
+        -Body (Get-Content -Raw -Path $botConfigPath)
+    Write-Host "Blockchain uploaded successfully."
 } catch {
-    Write-Host "Failed to download checkpoints."
+    Write-Host "Failed to upload blockchain."
     Write-Host $_
 } finally {
     Read-Host "Press Enter to exit..."
