@@ -75,7 +75,7 @@ class BlockDict(TypedDict):
     """
     index: int
     timestamp: float
-    data: BlockData | BlockDataLegacy
+    data: "BlockData | BlockDataLegacy"
     previous_block_hash: str
     nonce: int
     block_hash: str
