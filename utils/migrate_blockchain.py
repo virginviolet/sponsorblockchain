@@ -147,6 +147,7 @@ def migrate_blockchain(blockchain: Blockchain) -> Blockchain:
         current_block: None | Block = None
         previous_block: None | Block = None
         with open(old_blockchain_backup_path, "r") as old_file:
+            # i = 0
             for line in old_file:
                 # Load the line as a block
                 try:
@@ -173,6 +174,7 @@ def migrate_blockchain(blockchain: Blockchain) -> Blockchain:
                 else:
                     previous_block_hash = previous_block.block_hash
                 new_block = Block(
+                    # index=i,
                     index=loaded_block_model.index,
                     timestamp=loaded_block_model.timestamp,
                     data=block_data_parsed,
@@ -180,6 +182,7 @@ def migrate_blockchain(blockchain: Blockchain) -> Blockchain:
                 )
                 new_block_data: BlockData | BlockDataLegacy = new_block.data
                 new_block_model_instance = BlockModel(
+                    # index=i,
                     index=new_block.index,
                     timestamp=new_block.timestamp,
                     data=new_block_data,
@@ -192,6 +195,7 @@ def migrate_blockchain(blockchain: Blockchain) -> Blockchain:
                 print(f"New block data (json): {block_json}")
                 new_file.write(block_json + "\n")
                 previous_block = new_block
+                # i += 1
     print("Blockchain migrated.")
     return new_blockchain
 # endregion
