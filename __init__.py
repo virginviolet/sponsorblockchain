@@ -8,7 +8,7 @@ with lazyimports.lazy_imports(
         ".sponsorblockchain_type_aliases:Transaction",
         ".sponsorblockchain_type_aliases:BlockData",
         ".sponsorblockchain_type_aliases:BlockModel"):
-    from .sponsorblockchain_type_aliases import (
+    from .sponsorblockchain_types import (
         Transaction, BlockData, BlockModel)
 with lazyimports.lazy_imports(
         ".sponsorblockchain_main:app",

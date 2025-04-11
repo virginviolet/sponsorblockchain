@@ -12,19 +12,19 @@ try:
     # modules/block.py <- modules/__init__.py <- modules/blockchain.py <- sponsorblockchain_main.py
     with lazyimports.lazy_imports(
             "..sponsorblockchain_type_aliases:BlockData"):
-        from ..sponsorblockchain_type_aliases import BlockData
+        from ..sponsorblockchain_types import BlockData
 except ImportError:
     try:
         # Running the blockchain directly from a script
         # in the blockchain root directory
         with lazyimports.lazy_imports(
                 "sponsorblockchain_type_aliases:BlockData"):
-            from sponsorblockchain_type_aliases import (BlockData)
+            from sponsorblockchain.sponsorblockchain_types import (BlockData)
     except ImportError:
         # Running the blockchain as a package
         with lazyimports.lazy_imports(
                 "sponsorblockchain.sponsorblockchain_type_aliases:BlockData"):
-            from sponsorblockchain.sponsorblockchain_type_aliases import (
+            from sponsorblockchain.sponsorblockchain_types import (
                 BlockData)
 # endregion
 

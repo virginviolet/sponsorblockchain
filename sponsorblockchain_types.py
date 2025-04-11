@@ -1,13 +1,13 @@
 # region Imports
 # Standard Library
-from typing import List, Dict, TypedDict
+from typing import List, Dict
 
 # Third party
 from pydantic import BaseModel
 # endregion
 
 
-# region Data classes
+# region Types
 
 class Transaction(BaseModel):
     """

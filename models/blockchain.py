@@ -26,7 +26,7 @@ try:
             "..sponsorblockchain_type_aliases:Transaction",
             "..sponsorblockchain_type_aliases:BlockData",
             "..sponsorblockchain_type_aliases:BlockModel"):
-        from ..sponsorblockchain_type_aliases import (
+        from ..sponsorblockchain_types import (
             BlockData, BlockModel, Transaction)
     with lazyimports.lazy_imports("..models.block:Block"):
         from ..models.block import Block
@@ -38,7 +38,7 @@ except ImportError:
                 "sponsorblockchain_type_aliases:Transaction",
                 "sponsorblockchain_type_aliases:BlockData",
                 "sponsorblockchain_type_aliases:BlockModel"):
-            from sponsorblockchain_type_aliases import (
+            from sponsorblockchain.sponsorblockchain_types import (
                 Transaction, BlockData,
                 BlockModel)
         with lazyimports.lazy_imports("models.block:Block"):
@@ -55,7 +55,7 @@ except ImportError:
                 "sponsorblockchain.sponsorblockchain_type_aliases:BlockData",
                 "sponsorblockchain.sponsorblockchain_type_aliases:BlockModel",
                 block_data_transaction_dicts_import):
-            from sponsorblockchain.sponsorblockchain_type_aliases import (
+            from sponsorblockchain.sponsorblockchain_types import (
                 Transaction, BlockData, BlockModel)
         with lazyimports.lazy_imports("sponsorblockchain.models.block:Block"):
             from sponsorblockchain.models.block import Block

@@ -19,7 +19,7 @@ try:
     with lazyimports.lazy_imports(
             "..sponsorblockchain_type_aliases:BlockData",
             "..sponsorblockchain_type_aliases:BlockModel"):
-        from ..sponsorblockchain_type_aliases import (BlockData, BlockModel)
+        from ..sponsorblockchain_types import (BlockData, BlockModel)
     with lazyimports.lazy_imports(
             "..models.block:Block"):
         from ..models.block import Block
@@ -33,7 +33,7 @@ except ImportError:
         with lazyimports.lazy_imports(
                 "sponsorblockchain_type_aliases:BlockData",
                 "sponsorblockchain_type_aliases:BlockModel"):
-            from sponsorblockchain_type_aliases import BlockData, BlockModel
+            from sponsorblockchain.sponsorblockchain_types import BlockData, BlockModel
         with lazyimports.lazy_imports("models.block:Block"):
             from models.block import Block
         with lazyimports.lazy_imports("models.blockchain:Blockchain"):
@@ -43,7 +43,7 @@ except ImportError:
         with lazyimports.lazy_imports(
                 "sponsorblockchain.sponsorblockchain_type_aliases:BlockData",
                 "sponsorblockchain.sponsorblockchain_type_aliases:BlockModel"):
-            from sponsorblockchain.sponsorblockchain_type_aliases import (
+            from sponsorblockchain.sponsorblockchain_types import (
                 BlockData, BlockModel)
         with lazyimports.lazy_imports(
                 "sponsorblockchain.models.block:Block"):

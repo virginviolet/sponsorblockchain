@@ -20,7 +20,7 @@ if __name__ == "__main__" or __package__ == "":
     with lazyimports.lazy_imports(
             "sponsorblockchain_type_aliases:BlockData",
             "sponsorblockchain_type_aliases:BlockModel",):
-        from sponsorblockchain_type_aliases import (BlockData, BlockModel)
+        from sponsorblockchain.sponsorblockchain_types import (BlockData, BlockModel)
     with lazyimports.lazy_imports(
             "models.blockchain:Blockchain"):
         from models.blockchain import Blockchain
@@ -32,7 +32,7 @@ else:
             "sponsorblockchain.sponsorblockchain_type_aliases:BlockData",
             "sponsorblockchain.sponsorblockchain_type_aliases:BlockDataLegacy",
             "sponsorblockchain.sponsorblockchain_type_aliases:BlockModel"):
-        from sponsorblockchain.sponsorblockchain_type_aliases import (
+        from sponsorblockchain.sponsorblockchain_types import (
             BlockData, BlockModel)
     with lazyimports.lazy_imports(
             "sponsorblockchain.models.blockchain:Blockchain"):
