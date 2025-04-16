@@ -14,15 +14,15 @@ from flask import Flask, request, jsonify, Response, send_file
 from dotenv import load_dotenv
 
 if TYPE_CHECKING:
-    from type_aliases import MessageMiningTimeline
+    from sponsorblockcasino_types import MessageMiningTimeline
 # endregion
 
 # Local
 with lazyimports.lazy_imports(
-        "type_aliases:SlotMachineConfig",
-        "type_aliases:BotConfig",
+        "sponsorblockcasino_types:SlotMachineConfig",
+        "sponsorblockcasino_types:BotConfig",
         "utils.decrypt_transactions:DecryptedTransactionsSpreadsheet"):
-    from type_aliases import SlotMachineConfig, BotConfig
+    from sponsorblockcasino_types import SlotMachineConfig, BotConfig
     from utils.decrypt_transactions import (
         DecryptedTransactionsSpreadsheet)
 # endregion
