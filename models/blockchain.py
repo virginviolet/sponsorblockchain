@@ -112,7 +112,8 @@ class Blockchain:
     def add_block(
             self,
             data: BlockData,
-            difficulty: int = 0) -> None:
+            difficulty: int = 0,
+            allow_huge_transaction: bool = False) -> None:
         latest_block: None | Block = self.get_last_block()
         new_block = Block(
             index=(latest_block.index + 1) if latest_block else 0,
@@ -447,7 +448,6 @@ class Blockchain:
         else:
             print(f"No transactions found for {user}.")
             return None
-
     # endregion
 
     # region Tx file valid

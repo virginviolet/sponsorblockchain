@@ -111,8 +111,11 @@ def add_block() -> Tuple[Response, int]:
         message = f"Data parsing error: {e}"
         print(message)
         return jsonify({"message": message}), 400
+    allow_huge_transaction: Any = request.get_json().get(
+        "allow_huge_transaction", False)
     try:
-        blockchain.add_block(data_parsed)
+        blockchain.add_block(data=data_parsed,
+                             allow_huge_transaction=allow_huge_transaction)
     except Exception as e:
         message = f"An error occurred while adding the block: {e}"
         print(message)
