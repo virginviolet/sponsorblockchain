@@ -118,8 +118,7 @@ class Blockchain:
             index=(latest_block.index + 1) if latest_block else 0,
             data=data,
             previous_block_hash=(
-                latest_block.block_hash if latest_block else "0")
-        )
+                latest_block.block_hash if latest_block else "0"))
         if difficulty > 0:
             new_block.mine_block(difficulty)
         for item in new_block.data:
@@ -136,9 +135,12 @@ class Blockchain:
                 elif transaction.amount == 0:
                     print("Transaction amount is 0.")
                     return
-                elif transaction.amount > 2147483647:
+                elif (transaction.amount > 2147483647 and
+                      not allow_huge_transaction):
                     print("Transaction amount is too large.")
                     return
+                elif transaction.amount > 2147483647:
+                    print("WARNING: Transaction limit overridden.")
                 elif transaction.amount < -2147483648:
                     print("Transaction amount is too small.")
                     return
@@ -428,9 +430,11 @@ class Blockchain:
                 ).fillna(0))
         if ((user in transactions["Sender"].values) or
                 (user in transactions["Receiver"].values)):
-            sent: float64 = (transactions[(transactions["Sender"] == user) & (
-                # type: ignore
-                transactions["Method"] != "reaction")]["Amount"].sum())
+            sent: float64 = (transactions[
+                (transactions["Sender"] == user) & 
+                (transactions["Method"] != "reaction") & 
+                (transactions["Method"] != "reaction_network")
+                ]["Amount"].sum())
             # print(f"Total amount sent by {user}: {sent}")
             received: float64 = (
                 transactions[transactions["Receiver"]
