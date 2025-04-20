@@ -9,11 +9,25 @@ param(
     [string]
     $to,
 
+    # use parameter sets
     [ValidateNotNullOrEmpty()]
-    [parameter(Mandatory = $true)]
+    [parameter(Mandatory = $true, ParameterSetName = 'amount')]
     [int]
-    $amount
+    $amount,
+    
+    [ValidateNotNullOrEmpty()]
+    [parameter(Mandatory = $true, ParameterSetName = 'bigAmount')]
+    [bigint]
+    $bigAmount
 )
+
+$allow_huge_transaction = $false
+
+if ($PSCmdlet.ParameterSetName -eq 'bigAmount') {
+    [bigint]$amount = $bigAmount
+    $allow_huge_transaction = $true
+}
+
 try {
     # https://www.powershellgallery.com/packages/Set-PsEnv
     Import-Module Set-PsEnv
@@ -55,7 +69,10 @@ try {
         amount   = $amount
         method   = "manual"
     }
-    $body = @{"data" = @(@{"transaction" = $transaction }) } | ConvertTo-Json -Depth 3
+    $body = @{
+        "data"             = @(@{"transaction" = $transaction })
+        "allow_huge_transaction" = $allow_huge_transaction
+    } | ConvertTo-Json -Depth 3
     Write-Host "Body: $body"
     Read-Host -Prompt "Press Enter to continue..."
     Invoke-RestMethod -Uri "$serverUrl/add_block" `
