@@ -435,9 +435,7 @@ class Blockchain:
                 sent += int(amount_str)
             received: int = 0
             received_transactions: pd.Series[str] = (transactions[
-                (transactions["Receiver"] == user) &
-                (transactions["Method"] != "reaction") &
-                (transactions["Method"] != "reaction_network")
+                (transactions["Receiver"] == user)
             ]["Amount"])
             for amount_str in received_transactions:
                 received += int(amount_str)
