@@ -423,29 +423,29 @@ class Blockchain:
         transactions: pd.DataFrame = (
             pd.read_csv(self.transactions_path,  # type: ignore
                         sep="\t", dtype={"Amount": str}))
-        if ((user in transactions["Sender"].values) or
+        if not ((user in transactions["Sender"].values) or
                 (user in transactions["Receiver"].values)):
-            sent: int = 0
-            sent_transactions: pd.Series[str] = (transactions[
-                (transactions["Sender"] == user) &
-                (transactions["Method"] != "reaction") &
-                (transactions["Method"] != "reaction_network")
-            ]["Amount"])
-            for amount_str in sent_transactions:
-                sent += int(amount_str)
-            received: int = 0
-            received_transactions: pd.Series[str] = (transactions[
-                (transactions["Receiver"] == user)
-            ]["Amount"])
-            for amount_str in received_transactions:
-                received += int(amount_str)
-            # print(f"Total amount received by {user}: {received}")
-            balance: int = received - sent
-            # print(f"Balance for {user}: {balance}")
-            return balance
-        else:
             print(f"No transactions found for {user}.")
             return None
+        sent: int = 0
+        sent_transactions: pd.Series[str] = (transactions[
+            (transactions["Sender"] == user) &
+            (transactions["Method"] != "reaction") &
+            (transactions["Method"] != "reaction_network")
+        ]["Amount"])
+        for amount in sent_transactions:
+            sent += int(amount)
+        # print(f"Total amount sent by {user}: {sent}")
+        received: int = 0
+        received_transactions: pd.Series[str] = (transactions[
+            (transactions["Receiver"] == user)
+        ]["Amount"])
+        for amount in received_transactions:
+            received += int(amount)
+        # print(f"Total amount received by {user}: {received}")
+        balance: int = received - sent
+        # print(f"Balance for {user}: {balance}")
+        return balance
     # endregion
 
     # region Tx file valid
