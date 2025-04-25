@@ -421,8 +421,9 @@ class Blockchain:
             self.create_transactions_file()
         balance = 0
         transactions: pd.DataFrame = (
-            pd.read_csv(self.transactions_path,  # type: ignore
-                        sep="\t", dtype={"Amount": str}))
+            pd.read_csv(  # pyright: ignore[reportUnknownMemberType]
+                self.transactions_path,
+                sep="\t", dtype={"Amount": str}))
         if not ((user in transactions["Sender"].values) or
                 (user in transactions["Receiver"].values)):
             print(f"No transactions found for {user}.")
