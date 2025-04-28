@@ -6,10 +6,9 @@ import zipfile
 import shutil
 from io import BytesIO
 from pathlib import Path
-from typing import Tuple, Dict, TYPE_CHECKING
+from typing import Any, Tuple, Dict, TYPE_CHECKING
 
 # Third party
-import lazyimports
 from flask import Flask, request, jsonify, Response, send_file
 from dotenv import load_dotenv
 
@@ -18,13 +17,10 @@ if TYPE_CHECKING:
 # endregion
 
 # Local
-with lazyimports.lazy_imports(
-        "sponsorblockcasino_types:SlotMachineConfig",
-        "sponsorblockcasino_types:BotConfig",
-        "utils.decrypt_transactions:DecryptedTransactionsSpreadsheet"):
-    from sponsorblockcasino_types import SlotMachineConfig, BotConfig
-    from utils.decrypt_transactions import (
-        DecryptedTransactionsSpreadsheet)
+from sponsorblockcasino_types import SlotMachineConfig, BotConfig
+from pydantic import BaseModel
+from utils.decrypt_transactions import (
+    DecryptedTransactionsSpreadsheet)
 # endregion
 
 # region Constants
@@ -39,33 +35,62 @@ save_data_dir_path: Path = Path("data/save_data")
 decrypted_transactions_path: Path = Path("data/transactions_decrypted.tsv")
 message_mining_registry_path: Path = Path(
     "data/message_mining_registry.json")
+
 # endregion
 
 # region Functions
 
 
-def save_slot_config(config: SlotMachineConfig) -> None:
-    path: Path = slot_machine_config_path
-    file_exists: bool = os.path.exists(path)
-    file_empty: bool = file_exists and os.stat(
-        path).st_size == 0
+def replace_config(config_path: Path,
+                   config_json: Any,
+                   config_type: Any) -> None:
+    if not isinstance(config_json, type) and not isinstance(config_json, dict):
+        error_message: str = (
+            f"Invalid config JSON: {config_json}. "
+            "Must be a Pydantic model or a dict.")
+        raise ValueError(error_message)
+    try:
+        if issubclass(config_type, BaseModel):
+            # If config_type is a Pydantic model, validate the data
+            print("Config type is a Pydantic model.")
+            try:
+                config_json = config_type.model_validate(config_json)
+            except Exception as e:
+                error_message: str = (
+                    f"Error validating config type: {config_type.__name__}.\n"
+                    f"Error: {e}.\n"
+                    f"Config JSON: {config_json}")
+                raise ValueError(
+                    error_message) from e
+        elif issubclass(config_type, dict):
+            print("Config type is a dictionary.")
+            if not isinstance(config_json, dict):
+                error_message: str = (
+                    f"Invalid config JSON: {config_json}. "
+                    "Must be a dictionary.")
+                raise ValueError(error_message)
+        else:
+            print("Config type is not a Pydantic model or TypedDict.")
+            error_message: str = (
+                f"Invalid config type: {config_type.__name__}. "
+                "Must be a Pydantic model or TypedDict.")
+            raise ValueError(error_message)
+    except Exception as e:
+        error_message: str = (
+            f"Error validating config type: {config_type.__name__}.\n"
+            f"Error: {e}.\n"
+            f"Config JSON: {config_json}")
+        raise ValueError(error_message) from e
+    file_exists: bool = os.path.exists(config_path)
+    file_empty: bool = file_exists and os.stat(config_path).st_size == 0
     if not file_exists or file_empty:
-        directories: Path = path.parent
+        directories: Path = config_path.parent
         os.makedirs(directories, exist_ok=True)
-    with open(path, "w") as file:
-        file.write(json.dumps(config))
-
-
-def save_bot_config(config: BotConfig) -> None:
-    path: Path = bot_config_path
-    file_exists: bool = os.path.exists(path)
-    file_empty: bool = file_exists and os.stat(
-        path).st_size == 0
-    if not file_exists or file_empty:
-        directories: Path = path.parent
-        os.makedirs(directories, exist_ok=True)
-    with open(path, "w") as file:
-        file.write(json.dumps(config))
+    with open(config_path, "w") as file:
+        if isinstance(config_json, BaseModel):
+            file.write(config_json.model_dump_json(indent=4))
+        else:
+            json.dump(config_json, file, indent=4)
 # endregion
 
 
@@ -78,7 +103,8 @@ def register_routes(app: Flask) -> None:
 
     @app.route("/set_slot_machine_config", methods=["POST"])
     # API Route: Add a slot machine config
-    def set_slot_machine_config() -> Tuple[Response, int]:  # type: ignore
+    def set_slot_machine_config(  # pyright: ignore[reportUnusedFunction]
+    ) -> Tuple[Response, int]:
         print("Received request to set slot machine config.")
         token: str | None = request.headers.get("token")
         message: str
@@ -90,27 +116,30 @@ def register_routes(app: Flask) -> None:
             message = "Invalid token."
             print(message)
             return jsonify({"message": message}), 400
-        data: SlotMachineConfig = request.get_json()
+        data: Any = request.get_json()
         if not data:
             message = "Data is required."
             print(message)
             return jsonify({"message": message}), 400
         try:
-            save_slot_config(config=data)
+            replace_config(config_path=slot_machine_config_path,
+                           config_json=data,
+                           config_type=SlotMachineConfig)
             # Use the `reboot` parameter of the /slots command
             # to reload the slot machine config
             message = "Slot machine config updated."
             print(message)
             return jsonify({"message": message}), 200
         except Exception as e:
-            message = f"Error saving slot machine config: {str(e)}"
+            message: str = f"Error saving slot machine config: {str(e)}"
             return jsonify({"message": message}), 500
     # endregion
     # region Bot config get
 
     @app.route("/get_slot_machine_config", methods=["GET"])
     # API Route: Get the slot machine config
-    def get_slot_machine_config() -> Tuple[Response, int]:  # type: ignore
+    def get_slot_machine_config(  # pyright: ignore[reportUnusedFunction]
+    ) -> Tuple[Response, int]:
         print("Received request to get slot machine config.")
         message: str
         token: str | None = request.headers.get("token")
@@ -135,7 +164,8 @@ def register_routes(app: Flask) -> None:
     # region Bot config set
     @app.route("/set_bot_config", methods=["POST"])
     # API Route: Set the bot config
-    def set_bot_config() -> Tuple[Response, int]:  # type: ignore
+    def set_bot_config(  # pyright: ignore[reportUnusedFunction]
+    ) -> Tuple[Response, int]:
         print("Received request to set bot config.")
         message: str
         token: str | None = request.headers.get("token")
@@ -147,13 +177,15 @@ def register_routes(app: Flask) -> None:
             message = "Invalid token."
             print(message)
             return jsonify({"message": message}), 400
-        data: BotConfig = request.get_json()
+        data: Any = request.get_json()
         if not data:
             message = "Data is required."
             print(message)
             return jsonify({"message": message}), 400
         try:
-            save_bot_config(config=data)
+            replace_config(config_path=bot_config_path,
+                           config_json=data,
+                           config_type=BotConfig)
             message = "Bot config updated."
             print(message)
             return jsonify({"message": message}), 200
@@ -166,7 +198,8 @@ def register_routes(app: Flask) -> None:
     # region Bot config get
     @app.route("/get_bot_config", methods=["GET"])
     # API Route: Get the bot config
-    def get_bot_config() -> Tuple[Response, int]:  # type: ignore
+    def get_bot_config(  # pyright: ignore[reportUnusedFunction]
+    ) -> Tuple[Response, int]:
         print("Received request to get bot config.")
         message: str
         token: str | None = request.headers.get("token")
@@ -191,7 +224,8 @@ def register_routes(app: Flask) -> None:
     # region Checkpoints dl
     @app.route("/download_checkpoints", methods=["GET"])
     # API Route: Download the checkpoints
-    def download_checkpoints() -> Tuple[Response, int]:  # type: ignore
+    def download_checkpoints(  # pyright: ignore[reportUnusedFunction]
+    ) -> Tuple[Response, int]:
         print("Received request to download checkpoints.")
         message: str
         token: str | None = request.headers.get("token")
@@ -235,7 +269,8 @@ def register_routes(app: Flask) -> None:
     # region Checkpoints ul
     @app.route("/upload_checkpoints", methods=["POST"])
     # API Route: Upload checkpoints
-    def upload_checkpoints() -> Tuple[Response, int]:  # type: ignore
+    def upload_checkpoints(  # pyright: ignore[reportUnusedFunction]
+    ) -> Tuple[Response, int]:
         print("Received request to upload checkpoints.")
         message: str
         token: str | None = request.headers.get("token")
@@ -274,7 +309,8 @@ def register_routes(app: Flask) -> None:
     # region Checkpoints del
     @app.route("/delete_checkpoints", methods=["DELETE"])
     # API Route: Delete checkpoints
-    def delete_checkpoints() -> Tuple[Response, int]:  # type: ignore
+    def delete_checkpoints(  # pyright: ignore[reportUnusedFunction]
+    ) -> Tuple[Response, int]:
         print("Received request to delete checkpoints.")
         message: str
         token: str | None = request.headers.get("token")
@@ -302,7 +338,8 @@ def register_routes(app: Flask) -> None:
     # region Save data dl
     @app.route("/download_save_data", methods=["GET"])
     # API Route: Download the save data
-    def download_save_data() -> Tuple[Response, int]:  # type: ignore
+    def download_save_data(  # pyright: ignore[reportUnusedFunction]
+    ) -> Tuple[Response, int]:
         print("Received request to download save data.")
         message: str
         token: str | None = request.headers.get("token")
@@ -342,7 +379,8 @@ def register_routes(app: Flask) -> None:
     # region Save data ul
     @app.route("/upload_save_data", methods=["POST"])
     # API Route: Upload save data
-    def upload_save_data() -> Tuple[Response, int]:  # type: ignore
+    def upload_save_data(  # pyright: ignore[reportUnusedFunction]
+    ) -> Tuple[Response, int]:
         print("Received request to upload save data.")
         message: str
         token: str | None = request.headers.get("token")
@@ -381,8 +419,8 @@ def register_routes(app: Flask) -> None:
     # region Tx decrypted dl
     @app.route("/download_transactions_decrypted", methods=["GET"])
     # API Route: Download the decrypted transactions
-    # type: ignore
-    def download_transactions_decrypted() -> (  # type: ignore
+    def download_transactions_decrypted(  # pyright: ignore[reportUnusedFunction]
+    ) -> (
             Tuple[Response, int]):
         # TODO Add user_id and user_name parameters
         print("Received request to download decrypted transactions.")
@@ -423,7 +461,8 @@ def register_routes(app: Flask) -> None:
 
     # region Mining registry get
     @app.route("/get_mining_registry", methods=["GET"])
-    def get_mining_registry() -> Tuple[Response, int]:  # type: ignore
+    def get_mining_registry(  # pyright: ignore[reportUnusedFunction]
+    ) -> Tuple[Response, int]:
         print("Received request to get message mining registry.")
         message: str
         token: str | None = request.headers.get("token")
@@ -455,7 +494,8 @@ def register_routes(app: Flask) -> None:
 
     # region Mining registry set
     @app.route("/set_mining_registry", methods=["POST"])
-    def set_mining_registry() -> Tuple[Response, int]:  # type: ignore
+    def set_mining_registry(  # pyright: ignore[reportUnusedFunction]
+    ) -> Tuple[Response, int]:
         print("Received request to set message mining registry.")
         token: str | None = request.headers.get("token")
         message: str
@@ -467,16 +507,17 @@ def register_routes(app: Flask) -> None:
             message = "Invalid token."
             print(message)
             return jsonify({"message": message}), 400
-        data: Dict[str, Dict[str, MessageMiningTimeline]] = (
+        data: Any = (
             request.get_json())
         if not data:
             message = "Data is required."
             print(message)
             return jsonify({"message": message}), 400
         try:
-            with open(message_mining_registry_path, "w") as file:
-                file.write(json.dumps(data, indent=4))
-                file.close()
+            replace_config(
+                config_path=message_mining_registry_path,
+                config_json=data,
+                config_type=Dict[str, Dict[str, MessageMiningTimeline]])
             message = "Message mining registry updated."
             print(message)
             return jsonify({"message": message}), 200
