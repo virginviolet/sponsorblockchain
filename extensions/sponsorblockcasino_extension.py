@@ -6,7 +6,7 @@ import zipfile
 import shutil
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Tuple, Dict, TYPE_CHECKING
+from typing import Any, Tuple, Dict, TYPE_CHECKING, Callable
 
 # Third party
 from flask import Flask, request, jsonify, Response, send_file
@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
 # Local
 from sponsorblockcasino_types import SlotMachineConfig, BotConfig
+from functools import wraps
 from pydantic import BaseModel
 from utils.decrypt_transactions import (
     DecryptedTransactionsSpreadsheet)
@@ -93,6 +94,25 @@ def replace_config(config_path: Path,
             json.dump(config_json, file, indent=4)
 # endregion
 
+# region Decorators
+
+
+def authenticate_access_token(func: Callable[..., Any]) -> Callable[..., Any]:
+    @wraps(func)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        token: str | None = request.headers.get("token")
+        if not token:
+            message = "Token is required."
+            print(message)
+            return jsonify({"message": message}), 400
+        if token != SERVER_TOKEN:
+            message = "Invalid token."
+            print(message)
+            return jsonify({"message": message}), 400
+        return func(*args, **kwargs)
+    return wrapper
+# endregion
+
 
 def register_routes(app: Flask) -> None:
     # TODO Grifter suppliers dl
@@ -103,19 +123,10 @@ def register_routes(app: Flask) -> None:
 
     @app.route("/set_slot_machine_config", methods=["POST"])
     # API Route: Add a slot machine config
+    @authenticate_access_token
     def set_slot_machine_config(  # pyright: ignore[reportUnusedFunction]
     ) -> Tuple[Response, int]:
         print("Received request to set slot machine config.")
-        token: str | None = request.headers.get("token")
-        message: str
-        if not token:
-            message = "Token is required."
-            print(message)
-            return jsonify({"message": message}), 400
-        if token != SERVER_TOKEN:
-            message = "Invalid token."
-            print(message)
-            return jsonify({"message": message}), 400
         data: Any = request.get_json()
         if not data:
             message = "Data is required."
@@ -138,19 +149,11 @@ def register_routes(app: Flask) -> None:
 
     @app.route("/get_slot_machine_config", methods=["GET"])
     # API Route: Get the slot machine config
+    @authenticate_access_token
     def get_slot_machine_config(  # pyright: ignore[reportUnusedFunction]
     ) -> Tuple[Response, int]:
         print("Received request to get slot machine config.")
         message: str
-        token: str | None = request.headers.get("token")
-        if not token:
-            message = "Token is required."
-            print(message)
-            return jsonify({"message": message}), 400
-        if token != SERVER_TOKEN:
-            message = "Invalid token."
-            print(message)
-            return jsonify({"message": message}), 400
         if not os.path.exists(slot_machine_config_path):
             message = "Slot machine config not found."
             print(message)
@@ -164,20 +167,12 @@ def register_routes(app: Flask) -> None:
     # region Bot config set
     @app.route("/set_bot_config", methods=["POST"])
     # API Route: Set the bot config
+    @authenticate_access_token
     def set_bot_config(  # pyright: ignore[reportUnusedFunction]
     ) -> Tuple[Response, int]:
         print("Received request to set bot config.")
-        message: str
-        token: str | None = request.headers.get("token")
-        if not token:
-            message = "Token is required."
-            print(message)
-            return jsonify({"message": message}), 400
-        if token != SERVER_TOKEN:
-            message = "Invalid token."
-            print(message)
-            return jsonify({"message": message}), 400
         data: Any = request.get_json()
+        message: str
         if not data:
             message = "Data is required."
             print(message)
@@ -198,19 +193,11 @@ def register_routes(app: Flask) -> None:
     # region Bot config get
     @app.route("/get_bot_config", methods=["GET"])
     # API Route: Get the bot config
+    @authenticate_access_token
     def get_bot_config(  # pyright: ignore[reportUnusedFunction]
     ) -> Tuple[Response, int]:
         print("Received request to get bot config.")
         message: str
-        token: str | None = request.headers.get("token")
-        if not token:
-            message = "Token is required."
-            print(message)
-            return jsonify({"message": message}), 400
-        if token != SERVER_TOKEN:
-            message = "Invalid token."
-            print(message)
-            return jsonify({"message": message}), 400
         if not os.path.exists(bot_config_path):
             message = "Bot config not found."
             print(message)
@@ -224,19 +211,11 @@ def register_routes(app: Flask) -> None:
     # region Checkpoints dl
     @app.route("/download_checkpoints", methods=["GET"])
     # API Route: Download the checkpoints
+    @authenticate_access_token
     def download_checkpoints(  # pyright: ignore[reportUnusedFunction]
     ) -> Tuple[Response, int]:
         print("Received request to download checkpoints.")
         message: str
-        token: str | None = request.headers.get("token")
-        if not token:
-            message = "Token is required."
-            print(message)
-            return jsonify({"message": message}), 400
-        if token != SERVER_TOKEN:
-            message = "Invalid token."
-            print(message)
-            return jsonify({"message": message}), 400
         if not os.path.exists(checkpoints_dir_path):
             message = "Checkpoints not found."
             print(message)
@@ -269,17 +248,11 @@ def register_routes(app: Flask) -> None:
     # region Checkpoints ul
     @app.route("/upload_checkpoints", methods=["POST"])
     # API Route: Upload checkpoints
+    @authenticate_access_token
     def upload_checkpoints(  # pyright: ignore[reportUnusedFunction]
     ) -> Tuple[Response, int]:
         print("Received request to upload checkpoints.")
         message: str
-        token: str | None = request.headers.get("token")
-        if not token:
-            return jsonify({"message": "Token is required."}), 400
-        if token != SERVER_TOKEN:
-            message = "Invalid token."
-            print(message)
-            return jsonify({"message": message}), 400
         file_content: bytes = request.data
         try:
             if not os.path.exists(checkpoints_dir_path):
@@ -309,17 +282,11 @@ def register_routes(app: Flask) -> None:
     # region Checkpoints del
     @app.route("/delete_checkpoints", methods=["DELETE"])
     # API Route: Delete checkpoints
+    @authenticate_access_token
     def delete_checkpoints(  # pyright: ignore[reportUnusedFunction]
     ) -> Tuple[Response, int]:
         print("Received request to delete checkpoints.")
         message: str
-        token: str | None = request.headers.get("token")
-        if not token:
-            return jsonify({"message": "Token is required."}), 400
-        if token != SERVER_TOKEN:
-            message = "Invalid token."
-            print(message)
-            return jsonify({"message": message}), 400
         try:
             if os.path.exists(checkpoints_dir_path):
                 print("Deleting checkpoints...")
@@ -338,19 +305,11 @@ def register_routes(app: Flask) -> None:
     # region Save data dl
     @app.route("/download_save_data", methods=["GET"])
     # API Route: Download the save data
+    @authenticate_access_token
     def download_save_data(  # pyright: ignore[reportUnusedFunction]
     ) -> Tuple[Response, int]:
         print("Received request to download save data.")
         message: str
-        token: str | None = request.headers.get("token")
-        if not token:
-            message = "Token is required."
-            print(message)
-            return jsonify({"message": message}), 400
-        if token != SERVER_TOKEN:
-            message = "Invalid token."
-            print(message)
-            return jsonify({"message": message}), 400
         try:
             # Easier to store the file in memory than to add threading to remove
             # the file after the response is sent
@@ -379,17 +338,11 @@ def register_routes(app: Flask) -> None:
     # region Save data ul
     @app.route("/upload_save_data", methods=["POST"])
     # API Route: Upload save data
+    @authenticate_access_token
     def upload_save_data(  # pyright: ignore[reportUnusedFunction]
     ) -> Tuple[Response, int]:
         print("Received request to upload save data.")
         message: str
-        token: str | None = request.headers.get("token")
-        if not token:
-            return jsonify({"message": "Token is required."}), 400
-        if token != SERVER_TOKEN:
-            message = "Invalid token."
-            print(message)
-            return jsonify({"message": message}), 400
         file_content: bytes = request.data
         try:
             if not os.path.exists(save_data_dir_path):
@@ -419,21 +372,13 @@ def register_routes(app: Flask) -> None:
     # region Tx decrypted dl
     @app.route("/download_transactions_decrypted", methods=["GET"])
     # API Route: Download the decrypted transactions
+    @authenticate_access_token
     def download_transactions_decrypted(  # pyright: ignore[reportUnusedFunction]
     ) -> (
             Tuple[Response, int]):
         # TODO Add user_id and user_name parameters
         print("Received request to download decrypted transactions.")
         message: str
-        token: str | None = request.headers.get("token")
-        if not token:
-            message = "Token is required."
-            print(message)
-            return jsonify({"message": message}), 400
-        if token != SERVER_TOKEN:
-            message = "Invalid token."
-            print(message)
-            return jsonify({"message": message}), 400
         try:
             # The send_file method does not work for me
             # without resolving the paths (Flask bug?)
@@ -461,19 +406,11 @@ def register_routes(app: Flask) -> None:
 
     # region Mining registry get
     @app.route("/get_mining_registry", methods=["GET"])
+    @authenticate_access_token
     def get_mining_registry(  # pyright: ignore[reportUnusedFunction]
     ) -> Tuple[Response, int]:
         print("Received request to get message mining registry.")
         message: str
-        token: str | None = request.headers.get("token")
-        if not token:
-            message = "Token is required."
-            print(message)
-            return jsonify({"message": message}), 400
-        if token != SERVER_TOKEN:
-            message = "Invalid token."
-            print(message)
-            return jsonify({"message": message}), 400
         try:
             file_exists: bool = (
                 os.path.exists(decrypted_transactions_path))
@@ -494,19 +431,11 @@ def register_routes(app: Flask) -> None:
 
     # region Mining registry set
     @app.route("/set_mining_registry", methods=["POST"])
+    @authenticate_access_token
     def set_mining_registry(  # pyright: ignore[reportUnusedFunction]
     ) -> Tuple[Response, int]:
         print("Received request to set message mining registry.")
-        token: str | None = request.headers.get("token")
         message: str
-        if not token:
-            message = "Token is required."
-            print(message)
-            return jsonify({"message": message}), 400
-        if token != SERVER_TOKEN:
-            message = "Invalid token."
-            print(message)
-            return jsonify({"message": message}), 400
         data: Any = (
             request.get_json())
         if not data:
