@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
 # Local
 from sponsorblockcasino_types import SlotMachineConfig, BotConfig
+from schemas.pydantic_models import HighScores
 from functools import wraps
 from pydantic import BaseModel
 from utils.decrypt_transactions import (
@@ -36,6 +37,8 @@ save_data_dir_path: Path = Path("data/save_data")
 decrypted_transactions_path: Path = Path("data/transactions_decrypted.tsv")
 message_mining_registry_path: Path = Path(
     "data/message_mining_registry.json")
+leaderboard_slot_machine_path: Path = Path(
+    "data/slot_machine_high_scores.json")
 
 # endregion
 
@@ -55,7 +58,9 @@ def replace_config(config_path: Path,
             # If config_type is a Pydantic model, validate the data
             print("Config type is a Pydantic model.")
             try:
+                print("Validating config JSON...")
                 config_json = config_type.model_validate(config_json)
+                print("Config JSON validated.")
             except Exception as e:
                 error_message: str = (
                     f"Error validating config type: {config_type.__name__}.\n"
@@ -87,11 +92,13 @@ def replace_config(config_path: Path,
     if not file_exists or file_empty:
         directories: Path = config_path.parent
         os.makedirs(directories, exist_ok=True)
+    print("Saving config JSON...")
     with open(config_path, "w") as file:
         if isinstance(config_json, BaseModel):
             file.write(config_json.model_dump_json(indent=4))
         else:
             json.dump(config_json, file, indent=4)
+    print("Config JSON saved.")
 # endregion
 
 # region Decorators
@@ -455,3 +462,47 @@ def register_routes(app: Flask) -> None:
             print(message)
             return jsonify({"message": message}), 500
     print("Blockchain routes registered.")
+    # endregion
+
+    # region Leaderboard slots
+    @app.route("/set_leaderboard_slots", methods=["POST"])
+    # API Route: Replace the slot machine high scores
+    @authenticate_access_token
+    def set_leaderboard_slots(  # pyright: ignore[reportUnusedFunction]
+    ) -> Tuple[Response, int]:
+        print("Received request to set slot machine leaderboards.")
+        message: str
+        data: Any = request.get_json()
+        if not data:
+            message = "Data is required."
+            print(message)
+            return jsonify({"message": message}), 400
+        try:
+            replace_config(config_path=leaderboard_slot_machine_path,
+                           config_json=data,
+                           config_type=HighScores)
+            message = "Slot machine leaderboards updated."
+            print(message)
+            return jsonify({"message": message}), 200
+        except Exception as e:
+            message = f"Error saving slot machine leaderboards: {str(e)}"
+            print(message)
+            return jsonify({"message": message}), 500
+    # endregion
+
+    # region Leaderboard slots get
+    @app.route("/get_leaderboard_slots", methods=["GET"])
+    # API Route: Get the slot machine high scores
+    @authenticate_access_token
+    def get_leaderboard_slots(  # pyright: ignore[reportUnusedFunction]
+    ) -> Tuple[Response, int]:
+        print("Received request to get slot machine leaderboards.")
+        message: str
+        if not os.path.exists(leaderboard_slot_machine_path):
+            message = "Slot machine leaderboards not found."
+            print(message)
+            return jsonify({"message": message}), 404
+        with open(leaderboard_slot_machine_path, "r") as file:
+            data: HighScores = json.load(file)
+            print("Slot machine leaderboards will be returned.")
+            return jsonify(data), 200
