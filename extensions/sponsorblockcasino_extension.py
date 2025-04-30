@@ -11,6 +11,8 @@ from typing import Any, Tuple, Dict, TYPE_CHECKING, Callable
 # Third party
 from flask import Flask, request, jsonify, Response, send_file
 from dotenv import load_dotenv
+from functools import wraps
+from pydantic import BaseModel
 
 if TYPE_CHECKING:
     from sponsorblockcasino_types import MessageMiningTimeline
@@ -19,8 +21,6 @@ if TYPE_CHECKING:
 # Local
 from sponsorblockcasino_types import SlotMachineConfig, BotConfig
 from schemas.pydantic_models import HighScores
-from functools import wraps
-from pydantic import BaseModel
 from utils.decrypt_transactions import (
     DecryptedTransactionsSpreadsheet)
 # endregion
