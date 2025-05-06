@@ -15,11 +15,11 @@ from functools import wraps
 from pydantic import BaseModel
 
 if TYPE_CHECKING:
-    from sponsorblockcasino_types import MessageMiningTimeline
+    from schemas.sponsorblockcasino_types import MessageMiningTimeline
 # endregion
 
 # Local
-from sponsorblockcasino_types import SlotMachineConfig, BotConfig
+from schemas.sponsorblockcasino_types import SlotMachineConfig, BotConfig
 from schemas.pydantic_models import HighScores
 from utils.decrypt_transactions import (
     DecryptedTransactionsSpreadsheet)
