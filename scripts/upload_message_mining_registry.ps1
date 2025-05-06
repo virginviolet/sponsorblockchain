@@ -38,7 +38,7 @@ try {
     $scriptDirPath = Split-Path -Parent $MyInvocation.MyCommand.Path
     $blockchainPackageDirPath = Split-Path -Parent $scriptDirPath
     $botDirPath = Split-Path -Parent $blockchainPackageDirPath
-    $miningRegistryPath = "$botDirPath\data\message_mining_registry.json"
+    $miningRegistryPath = "$botDirPath\data\message_mining_registry_production.json"
     Invoke-RestMethod -Uri "$serverUrl/set_mining_registry" `
         -Method 'Post' `
         -Headers @{'token' = $Env:SERVER_TOKEN; "Content-Type" = "application/json" } `
