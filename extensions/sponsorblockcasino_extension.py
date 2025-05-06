@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 # Local
 from schemas.sponsorblockcasino_types import BotConfig
-from schemas.pydantic_models import SlotMachineConfig, HighScores
+from schemas.data_classes import SlotMachineConfig, HighScores
 from utils.decrypt_transactions import DecryptedTransactionsSpreadsheet
 # endregion
 
