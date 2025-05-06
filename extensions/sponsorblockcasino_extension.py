@@ -19,10 +19,9 @@ if TYPE_CHECKING:
 # endregion
 
 # Local
-from schemas.sponsorblockcasino_types import SlotMachineConfig, BotConfig
-from schemas.pydantic_models import HighScores
-from utils.decrypt_transactions import (
-    DecryptedTransactionsSpreadsheet)
+from schemas.sponsorblockcasino_types import BotConfig
+from schemas.pydantic_models import SlotMachineConfig, HighScores
+from utils.decrypt_transactions import DecryptedTransactionsSpreadsheet
 # endregion
 
 # region Constants
