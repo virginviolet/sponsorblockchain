@@ -6,7 +6,7 @@ import zipfile
 import shutil
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Tuple, Dict, TYPE_CHECKING, Callable
+from typing import Any, Tuple, Dict, Callable
 
 # Third party
 from flask import Flask, request, jsonify, Response, send_file
@@ -14,8 +14,7 @@ from dotenv import load_dotenv
 from functools import wraps
 from pydantic import BaseModel
 
-if TYPE_CHECKING:
-    from schemas.typed import MessageMiningTimeline
+from schemas.typed import MessageMiningTimeline
 # endregion
 
 # Local
@@ -52,40 +51,45 @@ def replace_config(config_path: Path,
             f"Invalid config JSON: {config_json}. "
             "Must be a Pydantic model or a dict.")
         raise ValueError(error_message)
-    try:
-        if issubclass(config_type, BaseModel):
-            # If config_type is a Pydantic model, validate the data
-            print("Config type is a Pydantic model.")
-            try:
-                print("Validating config JSON...")
-                config_json = config_type.model_validate(config_json)
-                print("Config JSON validated.")
-            except Exception as e:
-                error_message: str = (
-                    f"Error validating config type: {config_type.__name__}.\n"
-                    f"Error: {e}.\n"
-                    f"Config JSON: {config_json}")
-                raise ValueError(
-                    error_message) from e
-        elif issubclass(config_type, dict):
-            print("Config type is a dictionary.")
-            if not isinstance(config_json, dict):
-                error_message: str = (
-                    f"Invalid config JSON: {config_json}. "
-                    "Must be a dictionary.")
-                raise ValueError(error_message)
-        else:
-            print("Config type is not a Pydantic model or TypedDict.")
+    if (isinstance(config_json, type) and
+            issubclass(config_type, BaseModel)):
+        # If config_type is a Pydantic model, validate the data
+        print("Config type is a Pydantic model.")
+        try:
+            print("Validating config JSON...")
+            config_json = config_type.model_validate(config_json)
+            print("Config JSON validated.")
+        except Exception as e:
             error_message: str = (
-                f"Invalid config type: {config_type.__name__}. "
-                "Must be a Pydantic model or TypedDict.")
+                f"Error validating config type: {config_type.__name__}.\n"
+                f"Error: {e}.\n"
+                f"Config JSON: {config_json}")
+            raise ValueError(
+                error_message) from e
+    elif (isinstance(config_type, type) and
+            issubclass(config_type, dict)):
+        print("Config type is likely a TypedDict.")
+        if not isinstance(config_json, dict):
+            error_message: str = (
+                f"Invalid config JSON: {config_json}. "
+                "Must be a dict.")
             raise ValueError(error_message)
-    except Exception as e:
+    elif (isinstance(config_type, dict) or config_type.__name__ == "Dict"):
+        if isinstance(config_type, dict):
+            print("Config type is dict.")
+        else:
+            print("Config type is Dict.")
+        if not isinstance(config_json, dict):
+            error_message: str = (
+                f"Invalid config JSON: {config_json}. "
+                "Must be a dict.")
+            raise ValueError(error_message)
+    else:
+        print("Config type is not a Pydantic model, TypedDict, nor Dict.")
         error_message: str = (
-            f"Error validating config type: {config_type.__name__}.\n"
-            f"Error: {e}.\n"
-            f"Config JSON: {config_json}")
-        raise ValueError(error_message) from e
+            f"Invalid config type: {config_type.__name__}. "
+            "Must be a Pydantic model, TypedDict, or Dict.")
+        raise ValueError(error_message)
     file_exists: bool = os.path.exists(config_path)
     file_empty: bool = file_exists and os.stat(config_path).st_size == 0
     if not file_exists or file_empty:
@@ -97,7 +101,7 @@ def replace_config(config_path: Path,
             file.write(config_json.model_dump_json(indent=4))
         else:
             json.dump(config_json, file, indent=4)
-    print("Config JSON saved.")
+    print(f"Config JSON saved to '{config_path}'.")
 # endregion
 
 # region Decorators
