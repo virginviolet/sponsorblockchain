@@ -69,7 +69,11 @@ def start_flask_app_waitress() -> None:
         f"{app_name}:app"
     ]
     waitress_process = subprocess.Popen(
-        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding="utf-8")
     print("Flask app started with Waitress.")
 
     # Start threads to read output from the subprocess
