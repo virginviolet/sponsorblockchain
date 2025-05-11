@@ -90,18 +90,20 @@ def replace_config(config_path: Path,
             f"Invalid config type: {config_type.__name__}. "
             "Must be a Pydantic model, TypedDict, or Dict.")
         raise ValueError(error_message)
-    file_exists: bool = os.path.exists(config_path)
-    file_empty: bool = file_exists and os.stat(config_path).st_size == 0
+    config_path_resolved: Path = config_path.resolve()
+    file_exists: bool = os.path.exists(config_path_resolved)
+    file_empty: bool = (file_exists and
+                        os.stat(config_path_resolved).st_size == 0)
     if not file_exists or file_empty:
-        directories: Path = config_path.parent
+        directories: Path = config_path_resolved.parent
         os.makedirs(directories, exist_ok=True)
     print("Saving config JSON...")
-    with open(config_path, "w") as file:
+    with open(config_path_resolved, "w") as file:
         if isinstance(config_json, BaseModel):
             file.write(config_json.model_dump_json(indent=4))
         else:
             json.dump(config_json, file, indent=4)
-    print(f"Config JSON saved to '{config_path}'.")
+    print(f"Config JSON saved to '{config_path_resolved}'.")
 # endregion
 
 # region Decorators
