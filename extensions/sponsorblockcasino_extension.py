@@ -103,7 +103,8 @@ def replace_config(config_path: Path,
             file.write(config_json.model_dump_json(indent=4))
         else:
             json.dump(config_json, file, indent=4)
-    print(f"Config JSON saved to '{config_path_resolved}'.")
+    config_path_full: str = os.path.abspath(config_path_resolved)
+    print(f"Config JSON saved to '{config_path_full}'.")
 # endregion
 
 # region Decorators
